@@ -17,6 +17,7 @@ import {
   FaWifi,
   FaUnlock,
   FaMicroscope,
+  FaLayerGroup,
 } from "react-icons/fa";
 import { useTheme } from "@/components/theme-provider";
 
@@ -49,6 +50,10 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
       label: "Forensics and Analysis",
       to: "/forensics-analysis",
     },
+  ];
+
+  const presetsItems = [
+    { icon: FaLayerGroup, label: "Presets", to: "/presets" },
   ];
 
   const handleThemeToggle = () => {
@@ -128,6 +133,29 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
         </div>
 
         {advancedItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) =>
+              cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+                isActive
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground",
+                collapsed && "justify-center px-2"
+              )
+            }
+          >
+            <item.icon className="h-5 w-5 shrink-0" />
+            {!collapsed && <span className="truncate">{item.label}</span>}
+          </NavLink>
+        ))}
+
+        <div className="my-2 px-2">
+          <div className="h-[1px] bg-border/50" />
+        </div>
+
+        {presetsItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

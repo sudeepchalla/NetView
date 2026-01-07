@@ -8,12 +8,6 @@ NetView is a desktop app that provides a unified platform for running security a
 
 ## Installation and Usage
 
-- **Create an Engagement** - Click the engagement dropdown in the top-right and give your engagement a name
-- **Pick a Module** - Choose from Passive Recon, Active Recon, Vuln Scanning, etc.
-- **Configure & Run** - Select a tool, set your target, and hit run
-- **View Results** - Output streams in real-time; files are saved and tracked per engagement
-- **Use Presets** - Save your favorite tool combinations as one-click presets
-
 ### Prerequisites
 
 **To run the app:**
@@ -24,6 +18,30 @@ NetView is a desktop app that provides a unified platform for running security a
 
 - Node.js 18+
 - Rust toolchain
+
+### Download release
+
+Download the latest `.exe` from the [Releases](https://github.com/sudeepchalla/NetView/releases) tab and run the file.
+
+### Build from Source
+
+```bash
+git clone https://github.com/sudeepchalla/NetView.git
+cd NetView
+npm install
+npm run tauri build
+```
+
+The compiled `.exe` will be in `src-tauri/target/release/`.
+
+### Usage
+
+- **Create an Engagement** - Click the engagement dropdown in the top-right and give your engagement a name
+- **Pick a Module** - Choose from Passive Recon, Active Recon, Vuln Scanning, etc.
+- **Configure & Run** - Select a tool, set your target, and hit run
+- **View Results** - Output streams in real-time; files are saved and tracked per engagement
+- **Use Presets** - Save your favorite tool combinations as one-click presets
+- **And much more...**
 
 ## What is this?
 

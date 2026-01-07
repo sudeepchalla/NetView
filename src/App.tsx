@@ -12,6 +12,7 @@ import { WirelessAuditing } from "@/pages/WirelessAuditing";
 import { CrackingCrypto } from "@/pages/CrackingCrypto";
 import { ForensicsAnalysis } from "@/pages/ForensicsAnalysis";
 import { Reporting } from "@/pages/Reporting";
+import { Presets } from "@/pages/Presets";
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="wireless-auditing" element={<WirelessAuditing />} />
             <Route path="cracking-crypto" element={<CrackingCrypto />} />
             <Route path="forensics-analysis" element={<ForensicsAnalysis />} />
+            <Route path="presets" element={<Presets />} />
             <Route path="reporting" element={<Reporting />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
