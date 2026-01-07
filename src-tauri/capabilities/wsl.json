@@ -1,0 +1,30 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "wsl-execution",
+  "description": "Allows executing WSL commands",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    {
+      "identifier": "shell:allow-spawn",
+      "allow": [
+        {
+          "name": "wsl",
+          "cmd": "wsl",
+          "args": true
+        }
+      ]
+    },
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "wsl",
+          "cmd": "wsl",
+          "args": true
+        }
+      ]
+    }
+  ]
+}

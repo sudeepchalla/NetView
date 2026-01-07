@@ -9,6 +9,7 @@ pub fn run() {
             .build(),
         )?;
         app.handle().plugin(tauri_plugin_shell::init())?;
+        app.handle().plugin(tauri_plugin_sql::Builder::default().build())?;
       }
       Ok(())
     })

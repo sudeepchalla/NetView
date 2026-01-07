@@ -1,0 +1,169 @@
+import { useState } from "react";
+import {
+  FaTerminal,
+  FaBug,
+  FaGlobe,
+  FaNetworkWired,
+  FaDownload,
+} from "react-icons/fa";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+export function VulnScanning() {
+  const [activeTerminalTool, setActiveTerminalTool] = useState<{
+    name: string;
+    description: string;
+  } | null>(null);
+
+  const toolCategories = [
+    {
+      name: "Web Scanners",
+      icon: FaGlobe,
+      tools: [
+        {
+          name: "Nuclei",
+          description:
+            "Fast and customizable vulnerability scanner based on simple YAML based templates",
+        },
+        {
+          name: "OWASP ZAP",
+          description:
+            "The world's most popular free and open source security scanner",
+        },
+        {
+          name: "Nikto",
+          description:
+            "Web server scanner which performs comprehensive tests against web servers",
+        },
+      ],
+    },
+    {
+      name: "Network Scanners",
+      icon: FaNetworkWired,
+      tools: [
+        {
+          name: "OpenVAS",
+          description: "Full-featured vulnerability scanner",
+        },
+        {
+          name: "Nessus",
+          description: "Proprietary vulnerability scanner",
+        },
+      ],
+    },
+    {
+      name: "CMS Scanners",
+      icon: FaBug,
+      tools: [
+        {
+          name: "WPScan",
+          description: "WordPress vulnerability scanner",
+        },
+        {
+          name: "JoomScan",
+          description: "Joomla vulnerability scanner",
+        },
+      ],
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Vulnerability Scanning
+        </h1>
+        <p className="text-muted-foreground">
+          Identify weak points and known CVEs in the target infrastructure.
+        </p>
+      </div>
+
+      <div className="space-y-6">
+        {toolCategories.map((category) => (
+          <div key={category.name} className="space-y-3">
+            <div className="flex items-center gap-2">
+              <category.icon className="h-5 w-5 text-muted-foreground" />
+              <h3 className="text-xl font-semibold">{category.name}</h3>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {category.tools.map((tool) => (
+                <Dialog key={tool.name}>
+                  <DialogTrigger asChild>
+                    <Card className="bg-muted/50 cursor-pointer hover:bg-muted/80 transition-colors">
+                      <CardContent className="space-y-4 pt-6">
+                        <div className="min-h-[60px]">
+                          <h4 className="font-semibold text-base">
+                            {tool.name}
+                          </h4>
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {tool.description}
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium w-fit bg-muted text-muted-foreground">
+                            <FaTerminal className="h-3 w-3" />
+                            <span>Idle</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              console.log("Download tool:", tool.name);
+                            }}
+                          >
+                            <FaDownload className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{tool.name}</DialogTitle>
+                      <DialogDescription>{tool.description}</DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                      <p>
+                        Configuration for {tool.name} will be implemented here.
+                      </p>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              ))}
+            </div>
+            <Separator className="my-4" />
+          </div>
+        ))}
+      </div>
+
+      {/* Live Terminal Dialog Placeholder */}
+      <Dialog
+        open={!!activeTerminalTool}
+        onOpenChange={(open) => !open && setActiveTerminalTool(null)}
+      >
+        <DialogContent className="sm:max-w-4xl bg-zinc-950 border-zinc-800 text-zinc-100 font-mono">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-zinc-100">
+              <FaTerminal className="h-4 w-4" />
+              Terminal: {activeTerminalTool?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="h-[400px] w-full bg-zinc-900 rounded-md border border-zinc-800 p-4 font-mono text-sm">
+            <p className="text-zinc-500">Terminal simulation...</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
