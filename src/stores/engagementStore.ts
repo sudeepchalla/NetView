@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { query, execute } from "./db";
+import { join, documentDir } from "@tauri-apps/api/path";
+import { readDir } from "@tauri-apps/plugin-fs";
 import type { Engagement, EngagementFile } from "./types";
 
 interface EngagementState {
@@ -12,8 +14,7 @@ interface EngagementState {
   createEngagement: (name: string, description?: string) => Promise<Engagement | null>;
   selectEngagement: (id: number | null) => Promise<void>;
   deleteEngagement: (id: number) => Promise<void>;
-  addFile: (engagementId: number, fileName: string, filePath: string, toolName: string) => Promise<void>;
-  loadFiles: (engagementId: number) => Promise<void>;
+  loadFiles: (engagementName: string) => Promise<void>;
 }
 
 export const useEngagementStore = create<EngagementState>((set, get) => ({
@@ -41,10 +42,36 @@ export const useEngagementStore = create<EngagementState>((set, get) => ({
         currentEngagement = engagements.find((e) => e.id === parseInt(lastId)) || null;
       }
 
+      // Seed "Default" engagement if empty
+      if (engagements.length === 0) {
+        try {
+          await execute(
+            "INSERT INTO engagements (name, description) VALUES (?, ?)",
+            ["Default", "Default engagement for general recon"]
+          );
+          // Reload to get the new ID
+          const newRows = await query<{ id: number; name: string; description: string; created_at: string }>(
+            "SELECT * FROM engagements ORDER BY created_at DESC"
+          );
+          const newEngagements = newRows.map((r) => ({
+            id: r.id,
+            name: r.name,
+            description: r.description,
+            createdAt: r.created_at,
+          }));
+          
+          set({ engagements: newEngagements, currentEngagement: newEngagements[0], loading: false });
+          localStorage.setItem("netview-current-engagement", String(newEngagements[0].id));
+          return;
+        } catch (seedError) {
+          console.error("Failed to seed default engagement:", seedError);
+        }
+      }
+
       set({ engagements, currentEngagement, loading: false });
 
-      if (currentEngagement?.id) {
-        get().loadFiles(currentEngagement.id);
+      if (currentEngagement?.name) {
+        get().loadFiles(currentEngagement.name);
       }
     } catch (e) {
       console.error("Failed to load engagements:", e);
@@ -91,9 +118,9 @@ export const useEngagementStore = create<EngagementState>((set, get) => ({
     }
     const engagement = get().engagements.find((e) => e.id === id) || null;
     set({ currentEngagement: engagement });
-    if (engagement?.id) {
+    if (engagement?.name) {
       localStorage.setItem("netview-current-engagement", String(engagement.id));
-      get().loadFiles(engagement.id);
+      get().loadFiles(engagement.name);
     }
   },
 
@@ -113,42 +140,53 @@ export const useEngagementStore = create<EngagementState>((set, get) => ({
     }
   },
 
-  addFile: async (engagementId, fileName, filePath, toolName) => {
+  // Scan filesystem for files belonging to engagement by name prefix in filename
+  loadFiles: async (engagementName) => {
     try {
-      await execute(
-        "INSERT INTO engagement_files (engagement_id, file_name, file_path, tool_name) VALUES (?, ?, ?, ?)",
-        [engagementId, fileName, filePath, toolName]
+      // Build path using Tauri's path API for proper cross-platform handling
+      const docDir = await documentDir();
+      const resultsDir = await join(docDir, "NetView", "results");
+      
+      console.log("[loadFiles] Results directory:", resultsDir);
+
+      // Sanitize engagement name same way as tools do
+      const engagementPrefix = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
+      console.log("[loadFiles] Looking for prefix:", `${engagementPrefix}_`);
+
+      // Read directory entries
+      const entries = await readDir(resultsDir);
+      console.log("[loadFiles] Directory entries:", entries.map(e => e.name));
+
+      // Filter files that start with engagement prefix
+      const matchingFiles = entries.filter((entry) => 
+        entry.name?.startsWith(`${engagementPrefix}_`)
       );
-      if (get().currentEngagement?.id === engagementId) {
-        get().loadFiles(engagementId);
-      }
-    } catch (e) {
-      console.error("Failed to add file:", e);
-    }
-  },
+      console.log("[loadFiles] Matching files:", matchingFiles.map(e => e.name));
 
-  loadFiles: async (engagementId) => {
-    try {
-      const rows = await query<{
-        id: number;
-        engagement_id: number;
-        file_name: string;
-        file_path: string;
-        tool_name: string;
-        created_at: string;
-      }>("SELECT * FROM engagement_files WHERE engagement_id = ? ORDER BY created_at DESC", [engagementId]);
+      // Map to EngagementFile format
+      const files: EngagementFile[] = matchingFiles.map((entry, index) => {
+        // Filename format: {engagement}_{tool}_{target}_{timestamp}.{ext}
+        const parts = entry.name?.split("_") || [];
+        const toolName = parts[1] || "Unknown";
 
-      const files: EngagementFile[] = rows.map((r) => ({
-        id: r.id,
-        engagementId: r.engagement_id,
-        fileName: r.file_name,
-        filePath: r.file_path,
-        toolName: r.tool_name,
-        createdAt: r.created_at,
-      }));
+        return {
+          id: index,
+          engagementId: 0,
+          fileName: entry.name || "",
+          filePath: `${resultsDir}\\${entry.name}`,
+          toolName: toolName.charAt(0).toUpperCase() + toolName.slice(1),
+          createdAt: new Date().toISOString(),
+        };
+      });
+
+      // Sort by filename descending (newest first since timestamp is in name)
+      files.sort((a, b) => b.fileName.localeCompare(a.fileName));
+
+      console.log("[loadFiles] Final file count:", files.length);
       set({ currentFiles: files });
     } catch (e) {
-      console.error("Failed to load files:", e);
+      console.error("[loadFiles] Error:", e);
+      set({ currentFiles: [] });
     }
   },
 }));

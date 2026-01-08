@@ -5,8 +5,12 @@ export interface ToolConfig {
   description: string;
 }
 
-export interface SubfinderOptions {
+export interface BaseToolOptions {
   target: string;
+  engagementName?: string;
+}
+
+export interface SubfinderOptions extends BaseToolOptions {
   source?: string;
   apiKey?: string;
   all?: boolean;

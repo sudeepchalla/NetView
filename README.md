@@ -137,20 +137,6 @@ NetView/
 - **Zustand** for state
 - **SQLite** for local storage
 
-## Screenshots
-
-<!--
-  Add your screenshots to the 'screenshots' folder in the root directory.
-  Then uncomment and update the lines below:
--->
-
-<!--
-![Dashboard](screenshots/dashboard.png)
-![Presets](screenshots/presets.png)
--->
-
-_Add screenshots to the `screenshots` folder and link them here._
-
 ## ⚠️ Heads Up
 
 This is for authorized security testing only. Don't be that person. Always get permission before testing systems you don't own.

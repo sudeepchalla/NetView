@@ -1,0 +1,2 @@
+Important
+Go to tauri docs and read about the required permissions before adding permissions

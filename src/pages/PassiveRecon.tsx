@@ -32,7 +32,12 @@ import {
 } from "@/components/ui/select";
 
 // Stores
-import { useToolsStore, useProcessStore, useHistoryStore } from "@/stores";
+import {
+  useToolsStore,
+  useProcessStore,
+  useHistoryStore,
+  useEngagementStore,
+} from "@/stores";
 
 // Tool functions
 import {
@@ -72,6 +77,7 @@ export function PassiveRecon() {
   } = useToolsStore();
   const { outputs, setOutput, addOutput } = useProcessStore();
   const { addEntry, updateEntry, loadFromDb: loadHistory } = useHistoryStore();
+  const { currentEngagement } = useEngagementStore();
 
   // Helper function for favourites check
   const isFavourite = (toolName: string) => favourites.includes(toolName);
@@ -96,6 +102,10 @@ export function PassiveRecon() {
     setActiveTools((prev) => ({ ...prev, [toolName]: true }));
     setOutput(toolName, [`Starting ${toolName}...`]);
 
+    // Add engagement name to options for filename prefix
+    const engagementName = currentEngagement?.name || "Default";
+    const optionsWithEngagement = { ...options, engagementName };
+
     // Add to history
     const historyId = await addEntry({
       toolName,
@@ -107,13 +117,20 @@ export function PassiveRecon() {
 
     try {
       if (toolName === "Subfinder") {
-        await runSubfinder(options, {
+        await runSubfinder(optionsWithEngagement, {
           onOutput: (line) => addOutput(toolName, line),
           onComplete: async (success, _exitCode) => {
             setActiveTools((prev) => ({ ...prev, [toolName]: false }));
             await updateEntry(historyId, {
               status: success ? "Success" : "Failed",
             });
+
+            if (success) {
+              addOutput(
+                toolName,
+                `\n[Info] Results saved for engagement: ${engagementName}`
+              );
+            }
           },
           onError: (error) => {
             addOutput(toolName, `\n[Error: ${error}]`);
@@ -862,7 +879,7 @@ function GenericToolConfig({
   addOutput: (toolName: string, line: string) => void;
   onInstallStart: () => void;
   runTool: (
-    options: { target: string },
+    options: { target: string; engagementName?: string },
     callbacks: ToolCallbacks
   ) => Promise<unknown>;
   installTool: (password: string, callbacks: ToolCallbacks) => Promise<boolean>;
@@ -880,22 +897,29 @@ function GenericToolConfig({
   }>({ type: null, message: "" });
 
   const { markInstalled } = useToolsStore();
+  const { currentEngagement } = useEngagementStore();
 
   const handleRun = async () => {
     const toolName = tool.name;
+    const engagementName = currentEngagement?.name || "Default";
+
     onToolStart?.(toolName);
     setOutputs(toolName, [`Starting ${toolName}...`]);
     setActiveTerminal(tool);
     onClose(); // Close config dialog so terminal is visible
 
     await runTool(
-      { target },
+      { target, engagementName },
       {
         onOutput: (line) => addOutput(toolName, line),
-        onComplete: (success) => {
+        onComplete: async (success) => {
           onToolComplete?.(toolName, success);
           if (success) {
             addOutput(toolName, `\n[${toolName} completed successfully]`);
+            addOutput(
+              toolName,
+              `\n[Info] Results saved for engagement: ${engagementName}`
+            );
           }
         },
         onError: (error) => addOutput(toolName, `\n[Error: ${error}]`),

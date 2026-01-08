@@ -7,11 +7,12 @@ export async function runSubfinder(
   options: SubfinderOptions,
   callbacks: ToolCallbacks
 ): Promise<{ outputPath: string }> {
-  const { target, all, recursive } = options;
+  const { target, all, recursive, engagementName = "Default" } = options;
 
   //setup output paths
   const docDir = await documentDir();
-  const winPath = `${docDir}\\NetView\\results\\subfinder_${target}_${Date.now()}.json`;
+  const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const winPath = `${docDir}\\NetView\\results\\${engagement}_subfinder_${target}_${Date.now()}.json`;
   const wslPath = convertToWslPath(winPath);
   const outputDir = wslPath.substring(0, wslPath.lastIndexOf('/'));
 

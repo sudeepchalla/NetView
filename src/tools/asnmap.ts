@@ -6,6 +6,7 @@ import type { ToolCallbacks } from "./types";
 export interface AsnmapOptions {
   target: string;
   type?: "asn" | "ip" | "domain" | "org";
+  engagementName?: string;
 }
 
 //run asnmap against target
@@ -13,11 +14,12 @@ export async function runAsnmap(
   options: AsnmapOptions,
   callbacks: ToolCallbacks
 ): Promise<{ outputPath: string }> {
-  const { target, type = "domain" } = options;
+  const { target, type = "domain", engagementName = "Default" } = options;
 
   //setup output paths
   const docDir = await documentDir();
-  const winPath = `${docDir}\\NetView\\results\\asnmap_${target}_${Date.now()}.txt`;
+  const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const winPath = `${docDir}\\NetView\\results\\${engagement}_asnmap_${target}_${Date.now()}.txt`;
   const wslPath = convertToWslPath(winPath);
   const outputDir = wslPath.substring(0, wslPath.lastIndexOf('/'));
 

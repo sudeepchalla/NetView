@@ -6,6 +6,7 @@ export interface AmassOptions {
   target: string;
   passive?: boolean;
   apiKey?: string;
+  engagementName?: string;
 }
 
 //run amass enumeration against target
@@ -13,11 +14,12 @@ export async function runAmass(
   options: AmassOptions,
   callbacks: ToolCallbacks
 ): Promise<{ outputPath: string }> {
-  const { target, passive = true } = options;
+  const { target, passive = true, engagementName = "Default" } = options;
 
   //setup output paths
   const docDir = await documentDir();
-  const winPath = `${docDir}\\NetView\\results\\amass_${target}_${Date.now()}.json`;
+  const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const winPath = `${docDir}\\NetView\\results\\${engagement}_amass_${target}_${Date.now()}.json`;
   const wslPath = convertToWslPath(winPath);
   const outputDir = wslPath.substring(0, wslPath.lastIndexOf('/'));
 

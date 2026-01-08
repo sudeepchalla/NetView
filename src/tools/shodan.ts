@@ -7,6 +7,7 @@ export interface ShodanOptions {
   target: string;
   apiKey: string;
   searchType?: "host" | "search" | "domain";
+  engagementName?: string;
 }
 
 //run shodan cli against target
@@ -14,11 +15,12 @@ export async function runShodan(
   options: ShodanOptions,
   callbacks: ToolCallbacks
 ): Promise<{ outputPath: string }> {
-  const { target, apiKey, searchType = "host" } = options;
+  const { target, apiKey, searchType = "host", engagementName = "Default" } = options;
 
   //setup output paths
   const docDir = await documentDir();
-  const winPath = `${docDir}\\NetView\\results\\shodan_${target.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.json`;
+  const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const winPath = `${docDir}\\NetView\\results\\${engagement}_shodan_${target.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.json`;
   const wslPath = convertToWslPath(winPath);
   const outputDir = wslPath.substring(0, wslPath.lastIndexOf('/'));
 
