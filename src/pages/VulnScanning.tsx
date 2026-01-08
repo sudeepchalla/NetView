@@ -77,17 +77,17 @@ export function VulnScanning() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">
+    <div className="min-h-full bg-background">
+      <div className="py-6 px-6 border-b border-border bg-card">
+        <h1 className="text-2xl font-bold tracking-tight">
           Vulnerability Scanning
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground mt-1">
           Identify weak points and known CVEs in the target infrastructure.
         </p>
       </div>
 
-      <div className="space-y-6">
+      <div className="p-6 space-y-6 max-w-7xl mx-auto">
         {toolCategories.map((category) => (
           <div key={category.name} className="space-y-3">
             <div className="flex items-center gap-2">

@@ -85,6 +85,18 @@ async function initSchema(): Promise<void> {
       FOREIGN KEY (engagement_id) REFERENCES engagements(id) ON DELETE CASCADE
     )
   `);
+
+  // Presets table for workflow builder
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS presets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT,
+      nodes_json TEXT DEFAULT '[]',
+      edges_json TEXT DEFAULT '[]',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 }
 
 /**

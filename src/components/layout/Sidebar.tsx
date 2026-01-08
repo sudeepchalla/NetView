@@ -109,6 +109,29 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
           <div className="h-[1px] bg-border/50" />
         </div>
 
+        {presetsItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) =>
+              cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+                isActive
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground",
+                collapsed && "justify-center px-2"
+              )
+            }
+          >
+            <item.icon className="h-5 w-5 shrink-0" />
+            {!collapsed && <span className="truncate">{item.label}</span>}
+          </NavLink>
+        ))}
+
+        <div className="my-2 px-2">
+          <div className="h-[1px] bg-border/50" />
+        </div>
+
         {workflowItems.map((item) => (
           <NavLink
             key={item.to}
@@ -150,29 +173,6 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
             {!collapsed && <span className="truncate">{item.label}</span>}
           </NavLink>
         ))}
-
-        <div className="my-2 px-2">
-          <div className="h-[1px] bg-border/50" />
-        </div>
-
-        {presetsItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-                isActive
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground",
-                collapsed && "justify-center px-2"
-              )
-            }
-          >
-            <item.icon className="h-5 w-5 shrink-0" />
-            {!collapsed && <span className="truncate">{item.label}</span>}
-          </NavLink>
-        ))}
       </nav>
 
       <div className="p-2 border-t space-y-1">
@@ -197,7 +197,7 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
 
         <Button
           variant="ghost"
-          onClick={() => open("https://github.com")}
+          onClick={() => open("https://github.com/sudeepchalla/NetView")}
           className={cn(
             "w-full justify-start gap-3 px-3 py-2 text-muted-foreground hover:text-accent-foreground",
             collapsed && "justify-center px-2"

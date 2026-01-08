@@ -141,3 +141,24 @@
     @apply bg-muted-foreground/50;
   }
 }
+
+/*applying styles to react flow controls(+, -, fullscreen...)*/
+.react-flow__controls {
+  @apply !bg-card !border !border-border !shadow-lg !rounded-lg overflow-hidden;
+}
+
+.react-flow__controls-button {
+  @apply !bg-card !border-border/50 !text-muted-foreground !border-b !transition-colors;
+}
+
+.react-flow__controls-button:hover {
+  @apply !bg-muted !text-primary;
+}
+
+.react-flow__controls-button:last-child {
+  @apply !border-b-0;
+}
+
+.react-flow__controls-button svg {
+  @apply !fill-current;
+}

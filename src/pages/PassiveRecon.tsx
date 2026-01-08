@@ -333,230 +333,237 @@ export function PassiveRecon() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Passive Recon</h1>
-        <p className="text-muted-foreground">
+    <div className="min-h-full bg-background">
+      <div className="py-6 px-6 border-b border-border bg-card">
+        <h1 className="text-2xl font-bold tracking-tight">Passive Recon</h1>
+        <p className="text-muted-foreground mt-1">
           Gather information about targets without directly interacting with
           them.
         </p>
       </div>
 
-      {/* Section 1: Target Analysis */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FaSearch className="h-5 w-5" />
-            Target Analysis
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Search by IP Address
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="e.g. 192.168.1.1"
-                  value={ipAddress}
-                  onChange={(e) => setIpAddress(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Search by URL</label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="e.g. example.com"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-
-          <Separator />
-
-          <div className="flex justify-start">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <FaPlay /> Perform Automated Scan
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-3xl max-h-[86vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Automated Recon Scan</DialogTitle>
-                  <DialogDescription>
-                    Select the tools you want to run against the target.
-                  </DialogDescription>
-                </DialogHeader>
-
-                <div className="space-y-6 py-4">
-                  {toolCategories.map((category) => (
-                    <div key={category.name} className="space-y-3">
-                      <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">
-                        {category.name}
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {category.tools.map((tool) => (
-                          <div
-                            key={tool.name}
-                            className="flex items-start space-x-3 space-y-0 rounded-md border p-4 cursor-pointer hover:bg-muted/50 transition-colors"
-                            onClick={() => handleToolToggle(tool.name)}
-                          >
-                            <Checkbox
-                              id={`tool-${tool.name}`}
-                              checked={selectedTools.includes(tool.name)}
-                              className="pointer-events-none"
-                            />
-                            <div className="space-y-1 leading-none">
-                              <Label
-                                htmlFor={`tool-${tool.name}`}
-                                className="font-medium cursor-pointer pointer-events-none"
-                              >
-                                {tool.name}
-                              </Label>
-                              <Label className="text-sm text-muted-foreground cursor-pointer pointer-events-none">
-                                {tool.description}
-                              </Label>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+      <div className="p-6 space-y-6 max-w-7xl mx-auto">
+        {/* Section 1: Target Analysis */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FaSearch className="h-5 w-5" />
+              Target Analysis
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Search by IP Address
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="e.g. 192.168.1.1"
+                    value={ipAddress}
+                    onChange={(e) => setIpAddress(e.target.value)}
+                  />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Search by URL</label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="e.g. example.com"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
 
-                <DialogFooter className="gap-2 sm:gap-0">
-                  <DialogClose asChild>
-                    <Button variant="outline">Cancel</Button>
-                  </DialogClose>
-                  <DialogClose asChild>
-                    <Button onClick={handleRunSelected}>Run Selected</Button>
-                  </DialogClose>
-                  <DialogClose asChild>
-                    <Button onClick={handleRunAll} variant="secondary">
-                      Run All
-                    </Button>
-                  </DialogClose>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </CardContent>
-      </Card>
+            <Separator />
 
-      {/* Section 2: Tool Management */}
-      <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <FaTerminal className="h-5 w-5" />
-          <h2 className="text-2xl font-bold tracking-tight">Available Tools</h2>
-        </div>
+            <div className="flex justify-start">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <FaPlay /> Perform Automated Scan
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-3xl max-h-[86vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Automated Recon Scan</DialogTitle>
+                    <DialogDescription>
+                      Select the tools you want to run against the target.
+                    </DialogDescription>
+                  </DialogHeader>
 
-        {toolCategories.map((category) => (
-          <div key={category.name} className="space-y-3">
-            <h3 className="text-xl font-semibold">{category.name}</h3>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {category.tools.map((tool) => {
-                const isRunning = activeTools[tool.name] || false;
-
-                return (
-                  <Dialog
-                    key={tool.name}
-                    open={activeConfigTool === tool.name}
-                    onOpenChange={(open) =>
-                      setActiveConfigTool(open ? tool.name : null)
-                    }
-                  >
-                    <DialogTrigger asChild>
-                      <Card className="bg-muted/50 cursor-pointer hover:bg-muted/80 transition-colors">
-                        <CardContent className="space-y-4 pt-2">
-                          <div className="min-h-[60px]">
-                            <h4 className="font-semibold text-base">
-                              {tool.name}
-                            </h4>
-                            <p className="text-sm text-muted-foreground line-clamp-2">
-                              {tool.description}
-                            </p>
-                          </div>
-                          <div className="flex items-center justify-between">
+                  <div className="space-y-6 py-4">
+                    {toolCategories.map((category) => (
+                      <div key={category.name} className="space-y-3">
+                        <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">
+                          {category.name}
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {category.tools.map((tool) => (
                             <div
-                              className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium w-fit transition-all cursor-pointer ${
-                                isRunning
-                                  ? "bg-green-100 text-green-700 hover:bg-green-200"
-                                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-                              }`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveTerminalTool(tool);
-                              }}
+                              key={tool.name}
+                              className="flex items-start space-x-3 space-y-0 rounded-md border p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+                              onClick={() => handleToolToggle(tool.name)}
                             >
-                              <FaTerminal className="h-3 w-3" />
-                              <span>{isRunning ? "Running" : "Idle"}</span>
-                            </div>
-                            <div className="flex items-center">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleFavourite(tool.name);
-                                }}
-                              >
-                                <FaStar
-                                  className={`h-4 w-4 ${
-                                    isFavourite(tool.name)
-                                      ? "text-yellow-500 fill-yellow-500"
-                                      : "text-muted-foreground"
-                                  }`}
-                                />
-                              </Button>
-                              <div
-                                className={`h-8 w-8 flex items-center justify-center ${
-                                  installedTools[tool.name]
-                                    ? "text-green-500"
-                                    : "text-muted-foreground"
-                                }`}
-                              >
-                                <FaDownload className="h-4 w-4" />
+                              <Checkbox
+                                id={`tool-${tool.name}`}
+                                checked={selectedTools.includes(tool.name)}
+                                className="pointer-events-none"
+                              />
+                              <div className="space-y-1 leading-none">
+                                <Label
+                                  htmlFor={`tool-${tool.name}`}
+                                  className="font-medium cursor-pointer pointer-events-none"
+                                >
+                                  {tool.name}
+                                </Label>
+                                <Label className="text-sm text-muted-foreground cursor-pointer pointer-events-none">
+                                  {tool.description}
+                                </Label>
                               </div>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </DialogTrigger>
-                    {/* Tool Configuration Dialog */}
-                    <DialogContent className="sm:max-w-[500px] [&>[data-slot=dialog-close]]:hidden">
-                      {renderToolConfig(tool, {
-                        onClose: () => setActiveConfigTool(null),
-                        onRun: (options: SubfinderOptions) =>
-                          executeTool(tool.name, options),
-                        setActiveTerminal: setActiveTerminalTool,
-                        setOutputs: setOutput,
-                        addOutput: addOutput,
-                        onInstallStart: () => setActiveConfigTool(null),
-                        onToolStart: (toolName: string) =>
-                          setActiveTools((prev) => ({
-                            ...prev,
-                            [toolName]: true,
-                          })),
-                        onToolComplete: (toolName: string, _success: boolean) =>
-                          setActiveTools((prev) => ({
-                            ...prev,
-                            [toolName]: false,
-                          })),
-                      })}
-                    </DialogContent>
-                  </Dialog>
-                );
-              })}
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <DialogFooter className="gap-2 sm:gap-0">
+                    <DialogClose asChild>
+                      <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <DialogClose asChild>
+                      <Button onClick={handleRunSelected}>Run Selected</Button>
+                    </DialogClose>
+                    <DialogClose asChild>
+                      <Button onClick={handleRunAll} variant="secondary">
+                        Run All
+                      </Button>
+                    </DialogClose>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
-            <Separator className="my-4" />
+          </CardContent>
+        </Card>
+
+        {/* Section 2: Tool Management */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-2">
+            <FaTerminal className="h-5 w-5" />
+            <h2 className="text-2xl font-bold tracking-tight">
+              Available Tools
+            </h2>
           </div>
-        ))}
+
+          {toolCategories.map((category) => (
+            <div key={category.name} className="space-y-3">
+              <h3 className="text-xl font-semibold">{category.name}</h3>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {category.tools.map((tool) => {
+                  const isRunning = activeTools[tool.name] || false;
+
+                  return (
+                    <Dialog
+                      key={tool.name}
+                      open={activeConfigTool === tool.name}
+                      onOpenChange={(open) =>
+                        setActiveConfigTool(open ? tool.name : null)
+                      }
+                    >
+                      <DialogTrigger asChild>
+                        <Card className="bg-muted/50 cursor-pointer hover:bg-muted/80 transition-colors">
+                          <CardContent className="space-y-4 pt-2">
+                            <div className="min-h-[60px]">
+                              <h4 className="font-semibold text-base">
+                                {tool.name}
+                              </h4>
+                              <p className="text-sm text-muted-foreground line-clamp-2">
+                                {tool.description}
+                              </p>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div
+                                className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium w-fit transition-all cursor-pointer ${
+                                  isRunning
+                                    ? "bg-green-100 text-green-700 hover:bg-green-200"
+                                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                }`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveTerminalTool(tool);
+                                }}
+                              >
+                                <FaTerminal className="h-3 w-3" />
+                                <span>{isRunning ? "Running" : "Idle"}</span>
+                              </div>
+                              <div className="flex items-center">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleFavourite(tool.name);
+                                  }}
+                                >
+                                  <FaStar
+                                    className={`h-4 w-4 ${
+                                      isFavourite(tool.name)
+                                        ? "text-yellow-500 fill-yellow-500"
+                                        : "text-muted-foreground"
+                                    }`}
+                                  />
+                                </Button>
+                                <div
+                                  className={`h-8 w-8 flex items-center justify-center ${
+                                    installedTools[tool.name]
+                                      ? "text-green-500"
+                                      : "text-muted-foreground"
+                                  }`}
+                                >
+                                  <FaDownload className="h-4 w-4" />
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </DialogTrigger>
+                      {/* Tool Configuration Dialog */}
+                      <DialogContent className="sm:max-w-[500px] [&>[data-slot=dialog-close]]:hidden">
+                        {renderToolConfig(tool, {
+                          onClose: () => setActiveConfigTool(null),
+                          onRun: (options: SubfinderOptions) =>
+                            executeTool(tool.name, options),
+                          setActiveTerminal: setActiveTerminalTool,
+                          setOutputs: setOutput,
+                          addOutput: addOutput,
+                          onInstallStart: () => setActiveConfigTool(null),
+                          onToolStart: (toolName: string) =>
+                            setActiveTools((prev) => ({
+                              ...prev,
+                              [toolName]: true,
+                            })),
+                          onToolComplete: (
+                            toolName: string,
+                            _success: boolean
+                          ) =>
+                            setActiveTools((prev) => ({
+                              ...prev,
+                              [toolName]: false,
+                            })),
+                        })}
+                      </DialogContent>
+                    </Dialog>
+                  );
+                })}
+              </div>
+              <Separator className="my-4" />
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Live Terminal Dialog */}
