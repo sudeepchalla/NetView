@@ -6,6 +6,36 @@ NetView is a desktop app that provides a unified platform for running security a
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)
 
+<div align="center">
+  <table>
+    <tr>
+      <td width="50%">
+        <b>Home Dashboard</b>
+        <img src="screenshots/home.png" alt="Home Dashboard" width="100%"/>
+        <br>
+      </td>
+      <td width="50%">
+        <b>Modules</b>
+         <img src="screenshots/passiverecon.png" alt="Modules" width="100%"/>
+        <br>
+      </td>
+    </tr>
+    <tr>
+      <td width="50%">
+        <b>Preset creation</b>
+        <img src="screenshots/createpresets.png" alt="Preset creation" width="100%"/>
+        <br>
+      </td>
+      <td width="50%">
+        <b>Engagement Management</b>
+        <img src="screenshots/engagement.png" alt="Engagement Management" width="100%"
+        />
+        <br>
+      </td>
+    </tr>
+  </table>
+</div>
+
 ## Installation and Usage
 
 ### Prerequisites
@@ -109,7 +139,17 @@ NetView/
 
 ## Screenshots
 
-_Coming soon_
+<!--
+  Add your screenshots to the 'screenshots' folder in the root directory.
+  Then uncomment and update the lines below:
+-->
+
+<!--
+![Dashboard](screenshots/dashboard.png)
+![Presets](screenshots/presets.png)
+-->
+
+_Add screenshots to the `screenshots` folder and link them here._
 
 ## ⚠️ Heads Up
 
