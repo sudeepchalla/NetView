@@ -17,7 +17,7 @@ export async function runWhois(
   //setup output paths
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const winPath = `${docDir}\\NetView\\results\\${engagement}_whois_${target.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.txt`;
+  const winPath = `${docDir}\\NetView\\results\\${engagement}\\whois_${target.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.txt`;
   const wslPath = convertToWslPath(winPath);
   const outputDir = wslPath.substring(0, wslPath.lastIndexOf('/'));
 

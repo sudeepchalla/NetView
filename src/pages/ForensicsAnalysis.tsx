@@ -40,13 +40,16 @@ export function ForensicsAnalysis() {
       icon: FaMicroscope,
       tools: [
         {
-          name: "Autopsy",
-          description:
-            "Digital forensics platform and graphical interface to Sleuth Kit",
+          name: "Sleuth Kit",
+          description: "Command-line forensics toolkit for disk analysis",
         },
         {
           name: "Binwalk",
-          description: "Firmware analysis tool",
+          description: "Firmware analysis and extraction tool",
+        },
+        {
+          name: "Foremost",
+          description: "File recovery based on headers and footers",
         },
       ],
     },
@@ -58,6 +61,20 @@ export function ForensicsAnalysis() {
           name: "Volatility",
           description: "Advanced memory forensics framework",
         },
+        {
+          name: "Rekall",
+          description: "Memory analysis and incident response framework",
+        },
+      ],
+    },
+    {
+      name: "Network Forensics",
+      icon: FaFileCode,
+      tools: [
+        {
+          name: "tcpdump",
+          description: "Command-line packet analyzer",
+        },
       ],
     },
     {
@@ -66,11 +83,25 @@ export function ForensicsAnalysis() {
       tools: [
         {
           name: "ExifTool",
-          description: "Read, write and edit meta information",
+          description: "Read, write, and edit file metadata",
         },
         {
           name: "Strings",
-          description: "Find printable strings in object files",
+          description: "Extract printable strings from binary files",
+        },
+        {
+          name: "Bulk Extractor",
+          description: "Digital forensics feature extraction tool",
+        },
+      ],
+    },
+    {
+      name: "Malware Analysis",
+      icon: FaMicroscope,
+      tools: [
+        {
+          name: "YARA",
+          description: "Pattern matching for malware identification",
         },
       ],
     },

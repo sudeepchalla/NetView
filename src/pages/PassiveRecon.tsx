@@ -110,7 +110,7 @@ export function PassiveRecon() {
     const historyId = await addEntry({
       toolName,
       action: "Subdomain Enumeration",
-      target: options.target,
+      target: options.target || "",
       category: "Passive Recon",
       status: "Running",
     });
@@ -128,7 +128,7 @@ export function PassiveRecon() {
             if (success) {
               addOutput(
                 toolName,
-                `\n[Info] Results saved for engagement: ${engagementName}`
+                `\n[Info] Results saved for engagement: ${engagementName}`,
               );
             }
           },
@@ -198,7 +198,7 @@ export function PassiveRecon() {
     setSelectedTools((prev) =>
       prev.includes(toolName)
         ? prev.filter((t) => t !== toolName)
-        : [...prev, toolName]
+        : [...prev, toolName],
     );
   };
 
@@ -210,7 +210,7 @@ export function PassiveRecon() {
   const handleRunAll = () => {
     console.log(
       "Running all tools:",
-      allTools.map((t) => t.name)
+      allTools.map((t) => t.name),
     );
     // Add logic to run all tools
   };
@@ -227,7 +227,7 @@ export function PassiveRecon() {
       onInstallStart: () => void;
       onToolStart: (toolName: string) => void;
       onToolComplete: (toolName: string, success: boolean) => void;
-    }
+    },
   ) => {
     switch (tool.name) {
       case "Subfinder":
@@ -565,7 +565,7 @@ export function PassiveRecon() {
                             })),
                           onToolComplete: (
                             toolName: string,
-                            _success: boolean
+                            _success: boolean,
                           ) =>
                             setActiveTools((prev) => ({
                               ...prev,
@@ -601,7 +601,7 @@ export function PassiveRecon() {
           <div className="h-[400px] w-full bg-zinc-900 rounded-md border border-zinc-800 p-4 overflow-y-auto font-mono text-sm whitespace-pre-wrap">
             {activeTerminalTool && outputs[activeTerminalTool.name] ? (
               outputs[activeTerminalTool.name].map(
-                (line: string, i: number) => <div key={i}>{line}</div>
+                (line: string, i: number) => <div key={i}>{line}</div>,
               )
             ) : (
               <div className="text-zinc-500 italic">
@@ -880,7 +880,7 @@ function GenericToolConfig({
   onInstallStart: () => void;
   runTool: (
     options: { target: string; engagementName?: string },
-    callbacks: ToolCallbacks
+    callbacks: ToolCallbacks,
   ) => Promise<unknown>;
   installTool: (password: string, callbacks: ToolCallbacks) => Promise<boolean>;
   optionsFields: string[];
@@ -918,12 +918,12 @@ function GenericToolConfig({
             addOutput(toolName, `\n[${toolName} completed successfully]`);
             addOutput(
               toolName,
-              `\n[Info] Results saved for engagement: ${engagementName}`
+              `\n[Info] Results saved for engagement: ${engagementName}`,
             );
           }
         },
         onError: (error) => addOutput(toolName, `\n[Error: ${error}]`),
-      }
+      },
     );
   };
 
@@ -1085,7 +1085,7 @@ function ShodanConfig({
   const [target, setTarget] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [searchType, setSearchType] = useState<"host" | "search" | "domain">(
-    "host"
+    "host",
   );
   const [isInstalling, setIsInstalling] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
@@ -1113,7 +1113,7 @@ function ShodanConfig({
           }
         },
         onError: (error) => addOutput(toolName, `\n[Error: ${error}]`),
-      }
+      },
     );
   };
 
@@ -1302,7 +1302,7 @@ function ApiToolConfig({
   addOutput: (toolName: string, line: string) => void;
   runTool: (
     options: { target: string },
-    callbacks: ToolCallbacks
+    callbacks: ToolCallbacks,
   ) => Promise<unknown>;
 }) {
   const [target, setTarget] = useState("");
@@ -1323,7 +1323,7 @@ function ApiToolConfig({
           }
         },
         onError: (error) => addOutput(toolName, `\n[Error: ${error}]`),
-      }
+      },
     );
   };
 

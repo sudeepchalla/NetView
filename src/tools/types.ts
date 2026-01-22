@@ -6,7 +6,8 @@ export interface ToolConfig {
 }
 
 export interface BaseToolOptions {
-  target: string;
+  target?: string;
+  inputFile?: string;
   engagementName?: string;
 }
 

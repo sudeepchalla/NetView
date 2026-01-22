@@ -14,6 +14,7 @@ import { ForensicsAnalysis } from "@/pages/ForensicsAnalysis";
 import { Reporting } from "@/pages/Reporting";
 import { Presets } from "@/pages/Presets";
 import { CreatePreset } from "@/pages/CreatePreset";
+import { Summary } from "@/pages/Summary";
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="forensics-analysis" element={<ForensicsAnalysis />} />
             <Route path="presets" element={<Presets />} />
             <Route path="createPreset" element={<CreatePreset />} />
+            <Route path="summary" element={<Summary />} />
             <Route path="reporting" element={<Reporting />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

@@ -19,7 +19,7 @@ export async function runWhatWeb(
   //setup output paths
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const winPath = `${docDir}\\NetView\\results\\${engagement}_whatweb_${target.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.json`;
+  const winPath = `${docDir}\\NetView\\results\\${engagement}\\whatweb_${target.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.json`;
   const wslPath = convertToWslPath(winPath);
   const outputDir = wslPath.substring(0, wslPath.lastIndexOf('/'));
 

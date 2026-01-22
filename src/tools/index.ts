@@ -10,3 +10,5 @@ export * from "./whois";
 export * from "./whatweb";
 export * from "./crtsh";
 export * from "./dnsdumpster";
+export * from "./httpx";
+export * from "./presetRunner";

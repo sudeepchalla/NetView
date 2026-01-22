@@ -31,18 +31,16 @@ export function VulnScanning() {
       tools: [
         {
           name: "Nuclei",
-          description:
-            "Fast and customizable vulnerability scanner based on simple YAML based templates",
+          description: "Fast YAML-based vulnerability scanner",
         },
-        {
-          name: "OWASP ZAP",
-          description:
-            "The world's most popular free and open source security scanner",
-        },
+
         {
           name: "Nikto",
-          description:
-            "Web server scanner which performs comprehensive tests against web servers",
+          description: "Web server vulnerability scanner",
+        },
+        {
+          name: "Wapiti",
+          description: "Black-box web application vulnerability scanner",
         },
       ],
     },
@@ -52,11 +50,15 @@ export function VulnScanning() {
       tools: [
         {
           name: "OpenVAS",
-          description: "Full-featured vulnerability scanner",
+          description: "Open-source full-featured vulnerability scanner",
         },
         {
           name: "Nessus",
-          description: "Proprietary vulnerability scanner",
+          description: "Commercial vulnerability assessment platform",
+        },
+        {
+          name: "Nmap NSE",
+          description: "Nmap scripting engine for vulnerability detection",
         },
       ],
     },
@@ -71,6 +73,24 @@ export function VulnScanning() {
         {
           name: "JoomScan",
           description: "Joomla vulnerability scanner",
+        },
+        {
+          name: "Droopescan",
+          description: "Drupal and Silverstripe CMS scanner",
+        },
+      ],
+    },
+    {
+      name: "API Scanners",
+      icon: FaGlobe,
+      tools: [
+        {
+          name: "Arjun",
+          description: "HTTP parameter discovery and analysis",
+        },
+        {
+          name: "Kiterunner",
+          description: "API endpoint and content discovery tool",
         },
       ],
     },

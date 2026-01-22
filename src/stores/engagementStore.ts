@@ -140,44 +140,48 @@ export const useEngagementStore = create<EngagementState>((set, get) => ({
     }
   },
 
-  // Scan filesystem for files belonging to engagement by name prefix in filename
+  // Scan filesystem for files in the engagement folder
   loadFiles: async (engagementName) => {
     try {
       // Build path using Tauri's path API for proper cross-platform handling
       const docDir = await documentDir();
-      const resultsDir = await join(docDir, "NetView", "results");
       
-      console.log("[loadFiles] Results directory:", resultsDir);
-
       // Sanitize engagement name same way as tools do
-      const engagementPrefix = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
-      console.log("[loadFiles] Looking for prefix:", `${engagementPrefix}_`);
+      const engagementFolder = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const engagementDir = await join(docDir, "NetView", "results", engagementFolder);
+      
+      console.log("[loadFiles] Engagement directory:", engagementDir);
 
-      // Read directory entries
-      const entries = await readDir(resultsDir);
+      // Read directory entries from the engagement folder
+      let entries;
+      try {
+        entries = await readDir(engagementDir);
+      } catch (e) {
+        // Directory doesn't exist yet - no files for this engagement
+        console.log("[loadFiles] Directory not found, no files yet");
+        set({ currentFiles: [] });
+        return;
+      }
+      
       console.log("[loadFiles] Directory entries:", entries.map(e => e.name));
 
-      // Filter files that start with engagement prefix
-      const matchingFiles = entries.filter((entry) => 
-        entry.name?.startsWith(`${engagementPrefix}_`)
-      );
-      console.log("[loadFiles] Matching files:", matchingFiles.map(e => e.name));
+      // Map to EngagementFile format - all files in folder belong to this engagement
+      const files: EngagementFile[] = entries
+        .filter(entry => entry.name && !entry.isDirectory)
+        .map((entry, index) => {
+          // Filename format: {tool}_{target}_{timestamp}.{ext}
+          const parts = entry.name?.split("_") || [];
+          const toolName = parts[0] || "Unknown";
 
-      // Map to EngagementFile format
-      const files: EngagementFile[] = matchingFiles.map((entry, index) => {
-        // Filename format: {engagement}_{tool}_{target}_{timestamp}.{ext}
-        const parts = entry.name?.split("_") || [];
-        const toolName = parts[1] || "Unknown";
-
-        return {
-          id: index,
-          engagementId: 0,
-          fileName: entry.name || "",
-          filePath: `${resultsDir}\\${entry.name}`,
-          toolName: toolName.charAt(0).toUpperCase() + toolName.slice(1),
-          createdAt: new Date().toISOString(),
-        };
-      });
+          return {
+            id: index,
+            engagementId: 0,
+            fileName: entry.name || "",
+            filePath: `${engagementDir}\\${entry.name}`,
+            toolName: toolName.charAt(0).toUpperCase() + toolName.slice(1),
+            createdAt: new Date().toISOString(),
+          };
+        });
 
       // Sort by filename descending (newest first since timestamp is in name)
       files.sort((a, b) => b.fileName.localeCompare(a.fileName));

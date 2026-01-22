@@ -4,6 +4,7 @@ import type { ToolCallbacks } from "./types";
 export interface CrtshOptions {
   target: string;
   includeExpired?: boolean;
+  engagementName?: string;
 }
 
 //query crt.sh for subdomains via certificate transparency logs
@@ -11,7 +12,7 @@ export async function runCrtsh(
   options: CrtshOptions,
   callbacks: ToolCallbacks
 ): Promise<{ outputPath: string; results: string[] }> {
-  const { target } = options;
+  const { target, engagementName = "Default" } = options;
 
   callbacks.onOutput?.(`Querying crt.sh for: ${target}`);
 
@@ -42,7 +43,8 @@ export async function runCrtsh(
     for (const domain of results) callbacks.onOutput?.(domain);
 
     const docDir = await documentDir();
-    const winPath = `${docDir}\\NetView\\results\\crtsh_${target}_${Date.now()}.txt`;
+    const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
+    const winPath = `${docDir}\\NetView\\results\\${engagement}\\crtsh_${target}_${Date.now()}.txt`;
     
     callbacks.onOutput?.(`\n[Query completed successfully]`);
     callbacks.onComplete?.(true, 0);

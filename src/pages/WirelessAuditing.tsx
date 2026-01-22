@@ -31,16 +31,24 @@ export function WirelessAuditing() {
       tools: [
         {
           name: "Aircrack-ng",
-          description: "Complete suite to assess WiFi network security",
+          description: "Complete suite for WiFi network security assessment",
         },
         {
           name: "Kismet",
-          description:
-            "Wireless network detector, sniffer, and intrusion detection system",
+          description: "Wireless network detector, sniffer, and IDS",
         },
         {
           name: "Wifite",
-          description: "Automated wireless attack tool",
+          description: "Automated wireless attack tool for WEP/WPA/WPA2",
+        },
+
+        {
+          name: "Airgeddon",
+          description: "Multi-use WiFi audit script with extensive features",
+        },
+        {
+          name: "Reaver",
+          description: "WPS brute-force attack tool for WPA/WPA2",
         },
       ],
     },
@@ -50,12 +58,19 @@ export function WirelessAuditing() {
       tools: [
         {
           name: "Bettercap",
-          description:
-            "The Swiss Army knife for WiFi, Bluetooth, Low Energy, and Ethernet networks reconnaissance and MITM attacks",
+          description: "Swiss Army knife for WiFi, BLE, and Ethernet attacks",
         },
         {
-          name: "BlueHydra",
-          description: "Bluetooth device discovery service",
+          name: "Bluelog",
+          description: "Bluetooth scanner and logger for reconnaissance",
+        },
+        {
+          name: "Spooftooph",
+          description: "Bluetooth device spoofing and cloning tool",
+        },
+        {
+          name: "Ubertooth",
+          description: "Bluetooth Low Energy monitoring and sniffing",
         },
       ],
     },
@@ -64,12 +79,16 @@ export function WirelessAuditing() {
       icon: FaSignal,
       tools: [
         {
-          name: "GQRX",
-          description: "Software defined radio receiver",
+          name: "RTL-433",
+          description: "Generic decoder for IoT radio transmissions",
         },
         {
-          name: "RTL-433",
-          description: "Generic data receiver to decode radio transmissions",
+          name: "GNU Radio",
+          description: "SDR signal processing toolkit",
+        },
+        {
+          name: "hackrf_tools",
+          description: "Software for HackRF SDR hardware",
         },
       ],
     },

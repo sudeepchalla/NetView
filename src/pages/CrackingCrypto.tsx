@@ -41,12 +41,11 @@ export function CrackingCrypto() {
       tools: [
         {
           name: "Hashcat",
-          description:
-            "World's fastest and most advanced password recovery utility",
+          description: "World's fastest GPU-accelerated password recovery",
         },
         {
           name: "John the Ripper",
-          description: "Fast password cracker",
+          description: "Fast CPU-based password cracker",
         },
       ],
     },
@@ -56,12 +55,16 @@ export function CrackingCrypto() {
       tools: [
         {
           name: "CrackStation",
-          description: "Online lookup for hashess",
+          description: "Online hash lookup service",
         },
         {
           name: "Hash-Identifier",
-          description:
-            "Identify the different types of hashes used to encrypt data",
+          description: "Identify different types of hashes",
+        },
+
+        {
+          name: "hashes.com",
+          description: "Online hash cracking and lookup database",
         },
       ],
     },
@@ -75,8 +78,21 @@ export function CrackingCrypto() {
         },
         {
           name: "Crunch",
-          description:
-            "Wordlist generator where you can specify a standard character set or a character set you specify",
+          description: "Wordlist generator with custom character sets",
+        },
+      ],
+    },
+    {
+      name: "Cryptography Utils",
+      icon: FaLock,
+      tools: [
+        {
+          name: "OpenSSL",
+          description: "Cryptographic toolkit for SSL/TLS operations",
+        },
+        {
+          name: "SSLscan",
+          description: "SSL/TLS cipher suite scanner and analyzer",
         },
       ],
     },

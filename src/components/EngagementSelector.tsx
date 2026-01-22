@@ -30,6 +30,7 @@ export function EngagementSelectorItems() {
     createEngagement,
     selectEngagement,
     deleteEngagement,
+    loadFiles,
   } = useEngagementStore();
 
   const [engagementDialogOpen, setEngagementDialogOpen] = useState(false);
@@ -164,6 +165,11 @@ export function EngagementSelectorItems() {
             size="icon"
             className="h-9 w-9 rounded-full relative"
             disabled={!currentEngagement}
+            onClick={() => {
+              if (currentEngagement?.name) {
+                loadFiles(currentEngagement.name);
+              }
+            }}
           >
             <FaFile className="h-4 w-4" />
             {currentFiles.length > 0 && (

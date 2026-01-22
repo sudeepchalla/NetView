@@ -2,21 +2,33 @@ import { documentDir } from "@tauri-apps/api/path";
 import { runWslCommand, spawnWslCommand, convertToWslPath } from "./wsl";
 import type { SubfinderOptions, ToolCallbacks } from "./types";
 
-//run subfinder against target domain
+//run subfinder against target domain or list of domains
 export async function runSubfinder(
   options: SubfinderOptions,
   callbacks: ToolCallbacks
 ): Promise<{ outputPath: string }> {
-  const { target, all, recursive, engagementName = "Default" } = options;
+  const { target, inputFile, all, recursive, engagementName = "Default" } = options;
 
-  //setup output paths
+  // Validate: either target or inputFile must be provided
+  if (!target && !inputFile) {
+    throw new Error("Either target or inputFile must be provided");
+  }
+
+  //setup output paths - use .txt for plain text output (compatible with httpx -l)
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const winPath = `${docDir}\\NetView\\results\\${engagement}_subfinder_${target}_${Date.now()}.json`;
+  const targetLabel = inputFile ? "multi" : target;
+  const winPath = `${docDir}\\NetView\\results\\${engagement}\\subfinder_${targetLabel}_${Date.now()}.txt`;
   const wslPath = convertToWslPath(winPath);
   const outputDir = wslPath.substring(0, wslPath.lastIndexOf('/'));
 
-  let subfinderCmd = `~/go/bin/subfinder -d ${target} -json -o "${wslPath}" -silent`;
+  let subfinderCmd: string;
+  if (inputFile) {
+    const wslInputPath = convertToWslPath(inputFile);
+    subfinderCmd = `~/go/bin/subfinder -dL "${wslInputPath}" -o "${wslPath}" -silent`;
+  } else {
+    subfinderCmd = `~/go/bin/subfinder -d ${target} -o "${wslPath}" -silent`;
+  }
   if (all) subfinderCmd += " -all";
   if (recursive) subfinderCmd += " -recursive";
 

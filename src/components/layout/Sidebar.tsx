@@ -18,6 +18,7 @@ import {
   FaUnlock,
   FaMicroscope,
   FaLayerGroup,
+  FaChartPie,
 } from "react-icons/fa";
 import { useTheme } from "@/components/theme-provider";
 
@@ -176,6 +177,22 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
       </nav>
 
       <div className="p-2 border-t space-y-1">
+        <NavLink
+          to="/summary"
+          className={({ isActive }) =>
+            cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+              isActive
+                ? "bg-accent text-accent-foreground"
+                : "text-muted-foreground",
+              collapsed && "justify-center px-2"
+            )
+          }
+        >
+          <FaChartPie className="h-5 w-5 shrink-0" />
+          {!collapsed && <span className="truncate">Summary</span>}
+        </NavLink>
+
         <Button
           variant="ghost"
           size="icon"

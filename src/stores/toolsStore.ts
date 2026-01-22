@@ -10,6 +10,7 @@ import {
   checkWhatWebInstalled,
   checkCrtshInstalled,
   checkDnsDumpsterInstalled,
+  checkHttpxInstalled,
 } from "@/tools";
 
 interface ToolsState {
@@ -36,6 +37,7 @@ const toolCheckFunctions: Record<string, () => Promise<boolean>> = {
   "WhatWeb": checkWhatWebInstalled,
   "CRT.sh": checkCrtshInstalled,
   "DNSDumpster": checkDnsDumpsterInstalled,
+  "Httpx": checkHttpxInstalled,
 };
 
 export const useToolsStore = create<ToolsState>((set, get) => ({

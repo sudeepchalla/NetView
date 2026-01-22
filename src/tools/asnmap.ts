@@ -19,7 +19,7 @@ export async function runAsnmap(
   //setup output paths
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const winPath = `${docDir}\\NetView\\results\\${engagement}_asnmap_${target}_${Date.now()}.txt`;
+  const winPath = `${docDir}\\NetView\\results\\${engagement}\\asnmap_${target}_${Date.now()}.txt`;
   const wslPath = convertToWslPath(winPath);
   const outputDir = wslPath.substring(0, wslPath.lastIndexOf('/'));
 
