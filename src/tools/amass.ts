@@ -1,5 +1,5 @@
 import { documentDir } from "@tauri-apps/api/path";
-import { runWslCommand, spawnWslCommand, convertToWslPath } from "./wsl";
+import { runCommand, spawnCommand, convertToToolPath } from "./execution";
 import type { ToolCallbacks } from "./types";
 
 export interface AmassOptions {
@@ -20,15 +20,15 @@ export async function runAmass(
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
   const winPath = `${docDir}\\NetView\\results\\${engagement}\\amass_${target}_${Date.now()}.json`;
-  const wslPath = convertToWslPath(winPath);
-  const outputDir = wslPath.substring(0, wslPath.lastIndexOf('/'));
+  const toolPath = convertToToolPath(winPath);
+  const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 
-  const amassCmd = `/snap/bin/amass enum ${passive ? '-passive' : ''} -d ${target} -json "${wslPath}"`;
+  const amassCmd = `/snap/bin/amass enum ${passive ? '-passive' : ''} -d ${target} -json "${toolPath}"`;
   const fullCmd = `mkdir -p "${outputDir}" && ${amassCmd}`;
 
   callbacks.onOutput?.(`Executing: ${amassCmd}`);
 
-  await spawnWslCommand(["bash", "-c", fullCmd], {
+  await spawnCommand(["bash", "-c", fullCmd], {
     onOutput: callbacks.onOutput,
     onComplete: (success, code) => {
       if (success) {
@@ -53,7 +53,7 @@ export async function installAmass(
   
   const script = `echo '${escapedPassword}' | sudo -S snap install amass && echo 'AMASS_INSTALL_SUCCESS'`;
   
-  const result = await runWslCommand(script, {
+  const result = await runCommand(script, {
     onOutput: (line) => {
       if (!line.includes(password)) callbacks.onOutput?.(line);
     },
@@ -74,6 +74,6 @@ export async function installAmass(
 
 //check if amass is installed
 export async function checkAmassInstalled(): Promise<boolean> {
-  const result = await runWslCommand("/snap/bin/amass -h > /dev/null 2>&1 && echo 'FOUND' || echo 'NOT_FOUND'");
+  const result = await runCommand("/snap/bin/amass -h > /dev/null 2>&1 && echo 'FOUND' || echo 'NOT_FOUND'");
   return result.output.some((line) => line.includes("FOUND") && !line.includes("NOT_FOUND"));
 }

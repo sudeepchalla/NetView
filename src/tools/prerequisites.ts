@@ -1,15 +1,15 @@
-import { runWslCommand } from "./wsl";
+import { runCommand } from "./execution";
 import type { ToolCallbacks } from "./types";
 
 //check if go is installed
 export async function checkGoInstalled(): Promise<boolean> {
-  const result = await runWslCommand("go version > /dev/null 2>&1 && echo 'FOUND' || echo 'NOT_FOUND'");
+  const result = await runCommand("go version > /dev/null 2>&1 && echo 'FOUND' || echo 'NOT_FOUND'");
   return result.output.some((line) => line.includes("FOUND") && !line.includes("NOT_FOUND"));
 }
 
 //check if python/pip is installed
 export async function checkPythonInstalled(): Promise<boolean> {
-  const result = await runWslCommand("python3 --version > /dev/null 2>&1 && pip3 --version > /dev/null 2>&1 && echo 'FOUND' || echo 'NOT_FOUND'");
+  const result = await runCommand("python3 --version > /dev/null 2>&1 && pip3 --version > /dev/null 2>&1 && echo 'FOUND' || echo 'NOT_FOUND'");
   return result.output.some((line) => line.includes("FOUND") && !line.includes("NOT_FOUND"));
 }
 
@@ -23,7 +23,7 @@ export async function installGo(
   
   const script = `echo '${escapedPassword}' | sudo -S apt-get update && echo '${escapedPassword}' | sudo -S apt-get install -y golang-go && echo 'GO_INSTALL_SUCCESS'`;
   
-  const result = await runWslCommand(script, {
+  const result = await runCommand(script, {
     onOutput: (line) => {
       if (!line.includes(password)) callbacks.onOutput?.(line);
     },
@@ -44,7 +44,7 @@ export async function installPython(
   
   const script = `echo '${escapedPassword}' | sudo -S apt-get update && echo '${escapedPassword}' | sudo -S apt-get install -y python3 python3-pip && echo 'PYTHON_INSTALL_SUCCESS'`;
   
-  const result = await runWslCommand(script, {
+  const result = await runCommand(script, {
     onOutput: (line) => {
       if (!line.includes(password)) callbacks.onOutput?.(line);
     },
@@ -65,7 +65,7 @@ export async function installRuby(
   
   const script = `echo '${escapedPassword}' | sudo -S apt-get update && echo '${escapedPassword}' | sudo -S apt-get install -y ruby && echo 'RUBY_INSTALL_SUCCESS'`;
   
-  const result = await runWslCommand(script, {
+  const result = await runCommand(script, {
     onOutput: (line) => {
       if (!line.includes(password)) callbacks.onOutput?.(line);
     },
@@ -78,6 +78,6 @@ export async function installRuby(
 
 //check if ruby is installed
 export async function checkRubyInstalled(): Promise<boolean> {
-  const result = await runWslCommand("ruby --version > /dev/null 2>&1 && echo 'FOUND' || echo 'NOT_FOUND'");
+  const result = await runCommand("ruby --version > /dev/null 2>&1 && echo 'FOUND' || echo 'NOT_FOUND'");
   return result.output.some((line) => line.includes("FOUND") && !line.includes("NOT_FOUND"));
 }

@@ -1,5 +1,5 @@
 import { documentDir } from "@tauri-apps/api/path";
-import { runWslCommand, spawnWslCommand, convertToWslPath } from "./wsl";
+import { runCommand, spawnCommand, convertToToolPath } from "./execution";
 import { checkGoInstalled, installGo } from "./prerequisites";
 import type { ToolCallbacks } from "./types";
 
@@ -20,8 +20,8 @@ export async function runAsnmap(
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
   const winPath = `${docDir}\\NetView\\results\\${engagement}\\asnmap_${target}_${Date.now()}.txt`;
-  const wslPath = convertToWslPath(winPath);
-  const outputDir = wslPath.substring(0, wslPath.lastIndexOf('/'));
+  const toolPath = convertToToolPath(winPath);
+  const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 
   //build command based on type
   let typeFlag = "-d";
@@ -31,12 +31,12 @@ export async function runAsnmap(
     case "org": typeFlag = "-org"; break;
   }
   
-  const asnmapCmd = `~/go/bin/asnmap ${typeFlag} ${target} -o "${wslPath}"`;
+  const asnmapCmd = `~/go/bin/asnmap ${typeFlag} ${target} -o "${toolPath}"`;
   const fullCmd = `mkdir -p "${outputDir}" && ${asnmapCmd}`;
 
   callbacks.onOutput?.(`Executing: ${asnmapCmd}`);
 
-  await spawnWslCommand(["bash", "-c", fullCmd], {
+  await spawnCommand(["bash", "-c", fullCmd], {
     onOutput: callbacks.onOutput,
     onComplete: (success, code) => {
       if (success) {
@@ -74,7 +74,7 @@ export async function installAsnmap(
   callbacks.onOutput?.("\nInstalling Asnmap...");
   
   const script = `go install -v github.com/projectdiscovery/asnmap/cmd/asnmap@latest 2>&1 && echo 'ASNMAP_INSTALL_SUCCESS'`;
-  const result = await runWslCommand(script, { onOutput: callbacks.onOutput });
+  const result = await runCommand(script, { onOutput: callbacks.onOutput });
 
   const success = result.output.some((line) => line.includes("ASNMAP_INSTALL_SUCCESS"));
 
@@ -91,6 +91,6 @@ export async function installAsnmap(
 
 //check if asnmap is installed
 export async function checkAsnmapInstalled(): Promise<boolean> {
-  const result = await runWslCommand("~/go/bin/asnmap -h > /dev/null 2>&1 && echo 'FOUND' || echo 'NOT_FOUND'");
+  const result = await runCommand("~/go/bin/asnmap -h > /dev/null 2>&1 && echo 'FOUND' || echo 'NOT_FOUND'");
   return result.output.some((line) => line.includes("FOUND") && !line.includes("NOT_FOUND"));
 }

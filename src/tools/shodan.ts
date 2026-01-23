@@ -1,5 +1,5 @@
 import { documentDir } from "@tauri-apps/api/path";
-import { runWslCommand, spawnWslCommand, convertToWslPath } from "./wsl";
+import { runCommand, spawnCommand, convertToToolPath } from "./execution";
 import { checkPythonInstalled, installPython } from "./prerequisites";
 import type { ToolCallbacks } from "./types";
 
@@ -21,26 +21,26 @@ export async function runShodan(
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
   const winPath = `${docDir}\\NetView\\results\\${engagement}\\shodan_${target.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.json`;
-  const wslPath = convertToWslPath(winPath);
-  const outputDir = wslPath.substring(0, wslPath.lastIndexOf('/'));
+  const toolPath = convertToToolPath(winPath);
+  const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 
   //build command based on search type
   let shodanCmd: string;
   switch (searchType) {
     case "search":
-      shodanCmd = `shodan init ${apiKey} && shodan search --fields ip_str,port,org,hostnames "${target}" > "${wslPath}"`;
+      shodanCmd = `shodan init ${apiKey} && shodan search --fields ip_str,port,org,hostnames "${target}" > "${toolPath}"`;
       break;
     case "domain":
-      shodanCmd = `shodan init ${apiKey} && shodan domain "${target}" > "${wslPath}"`;
+      shodanCmd = `shodan init ${apiKey} && shodan domain "${target}" > "${toolPath}"`;
       break;
     default:
-      shodanCmd = `shodan init ${apiKey} && shodan host "${target}" > "${wslPath}"`;
+      shodanCmd = `shodan init ${apiKey} && shodan host "${target}" > "${toolPath}"`;
   }
 
   const fullCmd = `mkdir -p "${outputDir}" && ${shodanCmd}`;
   callbacks.onOutput?.(`Executing Shodan ${searchType}...`);
 
-  await spawnWslCommand(["bash", "-c", fullCmd], {
+  await spawnCommand(["bash", "-c", fullCmd], {
     onOutput: (line) => {
       if (!line.includes(apiKey)) callbacks.onOutput?.(line);
     },
@@ -80,7 +80,7 @@ export async function installShodan(
   callbacks.onOutput?.("\nInstalling Shodan CLI...");
   
   const script = `pip3 install shodan 2>&1 && echo 'SHODAN_INSTALL_SUCCESS'`;
-  const result = await runWslCommand(script, { onOutput: callbacks.onOutput });
+  const result = await runCommand(script, { onOutput: callbacks.onOutput });
 
   const success = result.output.some((line) => line.includes("SHODAN_INSTALL_SUCCESS"));
 
@@ -97,6 +97,6 @@ export async function installShodan(
 
 //check if shodan cli is installed
 export async function checkShodanInstalled(): Promise<boolean> {
-  const result = await runWslCommand("shodan --help > /dev/null 2>&1 && echo 'FOUND' || echo 'NOT_FOUND'");
+  const result = await runCommand("shodan --help > /dev/null 2>&1 && echo 'FOUND' || echo 'NOT_FOUND'");
   return result.output.some((line) => line.includes("FOUND") && !line.includes("NOT_FOUND"));
 }

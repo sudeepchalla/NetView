@@ -1,5 +1,5 @@
 import { documentDir } from "@tauri-apps/api/path";
-import { runWslCommand, spawnWslCommand, convertToWslPath } from "./wsl";
+import { runCommand, spawnCommand, convertToToolPath } from "./execution";
 import type { ToolCallbacks } from "./types";
 
 export interface WhoisOptions {
@@ -18,15 +18,15 @@ export async function runWhois(
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
   const winPath = `${docDir}\\NetView\\results\\${engagement}\\whois_${target.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.txt`;
-  const wslPath = convertToWslPath(winPath);
-  const outputDir = wslPath.substring(0, wslPath.lastIndexOf('/'));
+  const toolPath = convertToToolPath(winPath);
+  const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 
-  const whoisCmd = `whois "${target}" > "${wslPath}" 2>&1`;
+  const whoisCmd = `whois "${target}" > "${toolPath}" 2>&1`;
   const fullCmd = `mkdir -p "${outputDir}" && ${whoisCmd}`;
 
   callbacks.onOutput?.(`Executing: whois ${target}`);
 
-  await spawnWslCommand(["bash", "-c", fullCmd], {
+  await spawnCommand(["bash", "-c", fullCmd], {
     onOutput: callbacks.onOutput,
     onComplete: (success, code) => {
       if (success) {
@@ -51,7 +51,7 @@ export async function installWhois(
   
   const script = `echo '${escapedPassword}' | sudo -S apt-get update && echo '${escapedPassword}' | sudo -S apt-get install -y whois && echo 'WHOIS_INSTALL_SUCCESS'`;
   
-  const result = await runWslCommand(script, {
+  const result = await runCommand(script, {
     onOutput: (line) => {
       if (!line.includes(password)) callbacks.onOutput?.(line);
     },
@@ -72,6 +72,6 @@ export async function installWhois(
 
 //check if whois is installed
 export async function checkWhoisInstalled(): Promise<boolean> {
-  const result = await runWslCommand("which whois > /dev/null 2>&1 && echo 'FOUND' || echo 'NOT_FOUND'");
+  const result = await runCommand("which whois > /dev/null 2>&1 && echo 'FOUND' || echo 'NOT_FOUND'");
   return result.output.some((line) => line.includes("FOUND") && !line.includes("NOT_FOUND"));
 }

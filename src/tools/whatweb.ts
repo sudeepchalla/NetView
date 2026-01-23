@@ -1,5 +1,5 @@
 import { documentDir } from "@tauri-apps/api/path";
-import { runWslCommand, spawnWslCommand, convertToWslPath } from "./wsl";
+import { runCommand, spawnCommand, convertToToolPath } from "./execution";
 import type { ToolCallbacks } from "./types";
 
 export interface WhatWebOptions {
@@ -20,18 +20,18 @@ export async function runWhatWeb(
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
   const winPath = `${docDir}\\NetView\\results\\${engagement}\\whatweb_${target.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.json`;
-  const wslPath = convertToWslPath(winPath);
-  const outputDir = wslPath.substring(0, wslPath.lastIndexOf('/'));
+  const toolPath = convertToToolPath(winPath);
+  const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 
   //build command
-  let whatwebCmd = `whatweb -a ${aggression} --log-json="${wslPath}"`;
+  let whatwebCmd = `whatweb -a ${aggression} --log-json="${toolPath}"`;
   if (verbose) whatwebCmd += " -v";
   whatwebCmd += ` "${target}"`;
 
   const fullCmd = `mkdir -p "${outputDir}" && ${whatwebCmd}`;
   callbacks.onOutput?.(`Executing: ${whatwebCmd}`);
 
-  await spawnWslCommand(["bash", "-c", fullCmd], {
+  await spawnCommand(["bash", "-c", fullCmd], {
     onOutput: callbacks.onOutput,
     onComplete: (success, code) => {
       if (success) {
@@ -56,7 +56,7 @@ export async function installWhatWeb(
   
   const script = `echo '${escapedPassword}' | sudo -S apt-get update && echo '${escapedPassword}' | sudo -S apt-get install -y whatweb && echo 'WHATWEB_INSTALL_SUCCESS'`;
   
-  const result = await runWslCommand(script, {
+  const result = await runCommand(script, {
     onOutput: (line) => {
       if (!line.includes(password)) callbacks.onOutput?.(line);
     },
@@ -77,6 +77,6 @@ export async function installWhatWeb(
 
 //check if whatweb is installed
 export async function checkWhatWebInstalled(): Promise<boolean> {
-  const result = await runWslCommand("which whatweb > /dev/null 2>&1 && echo 'FOUND' || echo 'NOT_FOUND'");
+  const result = await runCommand("which whatweb > /dev/null 2>&1 && echo 'FOUND' || echo 'NOT_FOUND'");
   return result.output.some((line) => line.includes("FOUND") && !line.includes("NOT_FOUND"));
 }

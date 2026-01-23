@@ -1,6 +1,6 @@
 //re-export all tool functions and types
 export * from "./types";
-export * from "./wsl";
+export * from "./execution";
 export * from "./prerequisites";
 export * from "./subfinder";
 export * from "./amass";
@@ -12,3 +12,7 @@ export * from "./crtsh";
 export * from "./dnsdumpster";
 export * from "./httpx";
 export * from "./presetRunner";
+export * from "./nmap";
+export * from "./masscan";
+export * from "./rustscan";
+export * from "./nuclei";

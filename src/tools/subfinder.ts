@@ -1,5 +1,5 @@
 import { documentDir } from "@tauri-apps/api/path";
-import { runWslCommand, spawnWslCommand, convertToWslPath } from "./wsl";
+import { runCommand, spawnCommand, convertToToolPath } from "./execution";
 import type { SubfinderOptions, ToolCallbacks } from "./types";
 
 //run subfinder against target domain or list of domains
@@ -19,15 +19,15 @@ export async function runSubfinder(
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
   const targetLabel = inputFile ? "multi" : target;
   const winPath = `${docDir}\\NetView\\results\\${engagement}\\subfinder_${targetLabel}_${Date.now()}.txt`;
-  const wslPath = convertToWslPath(winPath);
-  const outputDir = wslPath.substring(0, wslPath.lastIndexOf('/'));
+  const toolPath = convertToToolPath(winPath);
+  const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 
   let subfinderCmd: string;
   if (inputFile) {
-    const wslInputPath = convertToWslPath(inputFile);
-    subfinderCmd = `~/go/bin/subfinder -dL "${wslInputPath}" -o "${wslPath}" -silent`;
+    const toolInputPath = convertToToolPath(inputFile);
+    subfinderCmd = `~/go/bin/subfinder -dL "${toolInputPath}" -o "${toolPath}" -silent`;
   } else {
-    subfinderCmd = `~/go/bin/subfinder -d ${target} -o "${wslPath}" -silent`;
+    subfinderCmd = `~/go/bin/subfinder -d ${target} -o "${toolPath}" -silent`;
   }
   if (all) subfinderCmd += " -all";
   if (recursive) subfinderCmd += " -recursive";
@@ -35,7 +35,7 @@ export async function runSubfinder(
   const fullCmd = `mkdir -p "${outputDir}" && ${subfinderCmd}`;
   callbacks.onOutput?.(`Executing: ${subfinderCmd}`);
 
-  await spawnWslCommand(["bash", "-c", fullCmd], {
+  await spawnCommand(["bash", "-c", fullCmd], {
     onOutput: callbacks.onOutput,
     onComplete: (success, code) => {
       if (success) {
@@ -63,7 +63,7 @@ export async function installSubfinder(
   //install go and git
   const goScript = `echo '${escapedPassword}' | sudo -S apt-get update && echo '${escapedPassword}' | sudo -S apt-get install -y golang-go git && echo 'GO_INSTALL_SUCCESS'`;
 
-  const goResult = await runWslCommand(goScript, {
+  const goResult = await runCommand(goScript, {
     onOutput: (line) => {
       if (!line.includes(password)) callbacks.onOutput?.(line);
     },
@@ -83,7 +83,7 @@ export async function installSubfinder(
   //install subfinder
   const subfinderScript = `go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest 2>&1 && echo 'SUBFINDER_INSTALL_SUCCESS'`;
 
-  const subfinderResult = await runWslCommand(subfinderScript, {
+  const subfinderResult = await runCommand(subfinderScript, {
     onOutput: callbacks.onOutput,
   });
 
@@ -105,6 +105,6 @@ export async function installSubfinder(
 
 //check if subfinder is installed
 export async function checkSubfinderInstalled(): Promise<boolean> {
-  const result = await runWslCommand("~/go/bin/subfinder -h > /dev/null 2>&1 && echo 'FOUND' || echo 'NOT_FOUND'");
+  const result = await runCommand("~/go/bin/subfinder -h > /dev/null 2>&1 && echo 'FOUND' || echo 'NOT_FOUND'");
   return result.output.some((line) => line.includes("FOUND") && !line.includes("NOT_FOUND"));
 }
