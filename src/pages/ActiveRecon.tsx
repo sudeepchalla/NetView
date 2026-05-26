@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { useToolsStore, useProcessStore, useEngagementStore } from "@/stores";
+import { useToolsStore, useProcessStore } from "@/stores";
 import { 
   runHttpx, 
   installHttpx, 
@@ -34,8 +34,7 @@ import {
   runMasscan,
   installMasscan,
   runRustScan,
-  installRustScan,
-  type ToolCallbacks 
+  installRustScan, 
 } from "@/tools";
 import {
   Select,
@@ -719,7 +718,6 @@ function GenericConfigTemplate({
   tool,
   target,
   setTarget,
-  onClose,
   onRun,
   installTool,
   setActiveTerminal,

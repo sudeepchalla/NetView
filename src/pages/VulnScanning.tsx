@@ -28,7 +28,6 @@ import { useToolsStore, useProcessStore, useEngagementStore } from "@/stores";
 import {
   runNuclei,
   installNuclei,
-  type ToolCallbacks,
   type ToolConfig,
 } from "@/tools";
 
