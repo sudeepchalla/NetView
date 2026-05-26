@@ -20,7 +20,9 @@ export async function runCrtsh(
     const url = `https://crt.sh/?q=%25.${encodeURIComponent(target)}&output=json`;
     callbacks.onOutput?.(`Fetching: ${url}`);
     
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      method: "GET",
+    });
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
     const data = await response.json();
