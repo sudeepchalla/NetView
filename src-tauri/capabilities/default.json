@@ -24,19 +24,33 @@
     {
       "identifier": "fs:allow-read",
       "allow": [
-        { "path": "$DOCUMENT/**" }
+        {
+          "path": "$DOCUMENT/**"
+        }
       ]
     },
     {
       "identifier": "fs:allow-write",
       "allow": [
-        { "path": "$DOCUMENT/**" }
+        {
+          "path": "$DOCUMENT/**"
+        }
       ]
     },
     {
       "identifier": "fs:allow-read-dir",
       "allow": [
-        { "path": "$DOCUMENT/**" }
+        {
+          "path": "$DOCUMENT/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-stat",
+      "allow": [
+        {
+          "path": "$DOCUMENT/**"
+        }
       ]
     }
   ]

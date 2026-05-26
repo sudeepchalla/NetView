@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { query, execute } from "./db";
 import { join, documentDir } from "@tauri-apps/api/path";
-import { readDir } from "@tauri-apps/plugin-fs";
+import { readDir, stat } from "@tauri-apps/plugin-fs";
 import type { Engagement, EngagementFile } from "./types";
 
 interface EngagementState {
@@ -59,7 +59,7 @@ export const useEngagementStore = create<EngagementState>((set, get) => ({
             description: r.description,
             createdAt: r.created_at,
           }));
-          
+
           set({ engagements: newEngagements, currentEngagement: newEngagements[0], loading: false });
           localStorage.setItem("netview-current-engagement", String(newEngagements[0].id));
           return;
@@ -145,11 +145,11 @@ export const useEngagementStore = create<EngagementState>((set, get) => ({
     try {
       // Build path using Tauri's path API for proper cross-platform handling
       const docDir = await documentDir();
-      
+
       // Sanitize engagement name same way as tools do
       const engagementFolder = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
       const engagementDir = await join(docDir, "NetView", "results", engagementFolder);
-      
+
       console.log("[loadFiles] Engagement directory:", engagementDir);
 
       // Read directory entries from the engagement folder
@@ -162,29 +162,54 @@ export const useEngagementStore = create<EngagementState>((set, get) => ({
         set({ currentFiles: [] });
         return;
       }
-      
+
       console.log("[loadFiles] Directory entries:", entries.map(e => e.name));
 
       // Map to EngagementFile format - all files in folder belong to this engagement
-      const files: EngagementFile[] = entries
-        .filter(entry => entry.name && !entry.isDirectory)
-        .map((entry, index) => {
-          // Filename format: {tool}_{target}_{timestamp}.{ext}
-          const parts = entry.name?.split("_") || [];
-          const toolName = parts[0] || "Unknown";
+      const files: EngagementFile[] = await Promise.all(
+        entries
+          .filter(entry => entry.name && !entry.isDirectory)
+          .map(async (entry, index) => {
 
-          return {
-            id: index,
-            engagementId: 0,
-            fileName: entry.name || "",
-            filePath: `${engagementDir}\\${entry.name}`,
-            toolName: toolName.charAt(0).toUpperCase() + toolName.slice(1),
-            createdAt: new Date().toISOString(),
-          };
-        });
+            const parts = entry.name?.split("_") || [];
+            const toolName = parts[0] || "Unknown";
+
+            const filePath = `${engagementDir}\\${entry.name}`;
+
+            // Read actual file metadata
+            let createdAt = new Date().toISOString();
+
+            try {
+              const fileStats = await stat(filePath);
+            console.log("MTIME VALUE:", fileStats.mtime);
+            console.log("FULL FILE STATS:", fileStats);
+
+              if (fileStats.mtime) {
+                createdAt = new Date(fileStats.mtime).toISOString();
+              }
+
+            } catch (err) {
+              console.error("Failed to read file stats:", err);
+            }
+
+            return {
+              id: index,
+              engagementId: 0,
+              fileName: entry.name || "",
+              filePath,
+              toolName:
+                toolName.charAt(0).toUpperCase() + toolName.slice(1),
+              createdAt,
+            };
+          })
+      );
 
       // Sort by filename descending (newest first since timestamp is in name)
-      files.sort((a, b) => b.fileName.localeCompare(a.fileName));
+      files.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() -
+          new Date(a.createdAt).getTime()
+      );
 
       console.log("[loadFiles] Final file count:", files.length);
       set({ currentFiles: files });
