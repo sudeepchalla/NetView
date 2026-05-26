@@ -16,7 +16,7 @@ export async function runSubfinder(
 
   //setup output paths - use .txt for plain text output (compatible with httpx -l)
   const docDir = await documentDir();
-  const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const engagement = (engagementName|| "Default").replace(/[^a-zA-Z0-9_-]/g, "_");
   const targetLabel = inputFile ? "multi" : target;
   const winPath = `${docDir}\\NetView\\results\\${engagement}\\subfinder_${targetLabel}_${Date.now()}.txt`;
   const toolPath = convertToToolPath(winPath);
