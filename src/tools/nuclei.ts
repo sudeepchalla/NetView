@@ -1,6 +1,7 @@
 import { documentDir } from "@tauri-apps/api/path";
 import { spawnCommand, convertToToolPath, runCommand } from "./execution";
 import type { BaseToolOptions, ToolCallbacks } from "./types";
+import { ensureGoInstalledAndUpdated,checkGoInstalled } from "./prerequisites";
 
 export interface NucleiOptions extends BaseToolOptions {
   templates?: string[]; // -t (list of templates or tags)
@@ -22,7 +23,7 @@ export async function runNuclei(
   const toolPath = convertToToolPath(winPath);
   const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 
-  let cmd = `~/go/bin/nuclei -u "${target}" -json -o "${toolPath}"`;
+  let cmd = `~/go/bin/nuclei -u "${target}" -silent -jsonl -o "${toolPath}"`;
 
   if (templates && templates.length > 0) {
     templates.forEach(t => cmd += ` -t "${t}"`);
@@ -56,16 +57,23 @@ export async function installNuclei(
   password: string,
   callbacks: ToolCallbacks
 ): Promise<boolean> {
-  const escapedPassword = password.replace(/'/g, "'\\''");
+  callbacks.onOutput?.("Preparing Go environment...");
+
+  callbacks.onOutput?.(
+  `Go Installed: ${await checkGoInstalled()}`
+);
+const goReady = await ensureGoInstalledAndUpdated(
+  password,
+  callbacks
+);
+
+if (!goReady) {
+  callbacks.onError?.("Failed to prepare Go environment.");
+  return false;
+}
   callbacks.onOutput?.("Installing Nuclei...");
 
-  // Ensure Go
-  const goCheck = await runCommand("which go || echo 'GO_NOT_FOUND'");
-  if (goCheck.output.some(line => line.includes("GO_NOT_FOUND"))) {
-     callbacks.onOutput?.("Go not found. Installing Go...");
-     const goScript = `echo '${escapedPassword}' | sudo -S apt-get update && echo '${escapedPassword}' | sudo -S apt-get install -y golang-go`;
-     await runCommand(goScript, { onOutput: l => !l.includes(password) && callbacks.onOutput?.(l) });
-  }
+
 
   callbacks.onOutput?.("Installing Nuclei via Go...");
   const script = `go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest 2>&1 && echo 'INSTALL_SUCCESS'`;
