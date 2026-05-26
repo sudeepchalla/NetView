@@ -93,14 +93,27 @@ export function spawnCommand(
       callbacks.onError?.(String(error));
       resolve({ success: false, code: -1 });
     });
-
     command.spawn().catch((error: unknown) => {
       callbacks.onError?.(String(error));
       resolve({ success: false, code: -1 });
     });
   });
 }
+//runSudo command as helper function to execute sudo commands inside WSL for dependency installation
+export async function runSudoCommand(
+  password: string,
+  command: string,
+  options?: {
+    onOutput?: (line: string) => void;
+  }
+) {
+  const sudoCmd =
+    `echo "${password}" | sudo -S bash -c '${command}'`;
 
+  return await runCommand(sudoCmd, {
+    onOutput: options?.onOutput,
+  });
+}
 // Re-export specific aliases if needed during transition, or just use the new names
 export const runWslCommand = runCommand;
 export const spawnWslCommand = spawnCommand;
