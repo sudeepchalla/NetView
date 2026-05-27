@@ -59,45 +59,55 @@ export function runCommand(
 }
 
 // Spawn command with streaming output
-export function spawnCommand(
+export async function spawnCommand(
   args: string[],
   callbacks: ToolCallbacks
 ): Promise<{ success: boolean; code: number }> {
-  return new Promise((resolve) => {
+
+  try {
     let command: Command<string>;
 
     if (isWindows()) {
-      // args[0] should be the executable, but for WSL we wrap it
+      // Wrap commands in WSL on Windows
       command = Command.create("wsl", args);
+
     } else {
-        const [program, ...cmdArgs] = args;
-        command = Command.create(program, cmdArgs);
+      const [program, ...cmdArgs] = args;
+      command = Command.create(program, cmdArgs);
     }
 
+    // Stream stdout
     command.stdout.on("data", (line: string) => {
       callbacks.onOutput?.(line);
     });
 
+    // Stream stderr
     command.stderr.on("data", (line: string) => {
       callbacks.onOutput?.(line);
     });
 
-    command.on("close", (data: { code: number | null; signal: number | null }) => {
-      const exitCode = data.code ?? -1;
-      const success = exitCode === 0;
-      callbacks.onComplete?.(success, exitCode);
-      resolve({ success, code: exitCode });
-    });
+    // Execute and wait properly
+    const result = await command.execute();
 
-    command.on("error", (error: unknown) => {
-      callbacks.onError?.(String(error));
-      resolve({ success: false, code: -1 });
-    });
-    command.spawn().catch((error: unknown) => {
-      callbacks.onError?.(String(error));
-      resolve({ success: false, code: -1 });
-    });
-  });
+    const exitCode = result.code ?? -1;
+    const success = exitCode === 0;
+
+    callbacks.onComplete?.(success, exitCode);
+
+    return {
+      success,
+      code: exitCode,
+    };
+
+  } catch (error) {
+
+    callbacks.onError?.(String(error));
+
+    return {
+      success: false,
+      code: -1,
+    };
+  }
 }
 //runSudo command as helper function to execute sudo commands inside WSL for dependency installation
 export async function runSudoCommand(
