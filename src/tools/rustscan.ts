@@ -40,7 +40,7 @@ export async function runRustScan(
   cmd = `${cmd} | tee "${toolPath}"`;
 
   const fullCmd = `mkdir -p "${outputDir}" && ${cmd}`;
-  
+
   callbacks.onOutput?.(`Executing: ${cmd}`);
 
   await spawnCommand(["bash", "-c", fullCmd], {
@@ -48,7 +48,8 @@ export async function runRustScan(
     onComplete: callbacks.onComplete,
     onError: callbacks.onError,
   });
-
+  callbacks.onOutput?.("\n[+] Scan completed successfully");
+  callbacks.onOutput?.(`Results saved to:\n${winPath}`);
   return { outputPath: winPath };
 }
 
@@ -58,16 +59,16 @@ export async function installRustScan(
 ): Promise<boolean> {
   const escapedPassword = password.replace(/'/g, "'\\''");
   callbacks.onOutput?.("Installing RustScan...");
-  
+
   // RustScan .deb is best.
   const debUrl = "https://github.com/RustScan/RustScan/releases/download/2.0.1/rustscan_2.0.1_amd64.deb";
-  
+
   const script = `
     wget ${debUrl} -O /tmp/rustscan.deb && 
     echo '${escapedPassword}' | sudo -S dpkg -i /tmp/rustscan.deb && 
     echo 'INSTALL_SUCCESS'
   `;
-  
+
   const result = await runCommand(script, {
     onOutput: (line) => {
       if (!line.includes(password)) callbacks.onOutput?.(line);
