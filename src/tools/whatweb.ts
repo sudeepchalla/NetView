@@ -24,7 +24,8 @@ export async function runWhatWeb(
   const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 
   //build command
-  let whatwebCmd = `whatweb -a ${aggression} --log-json="${toolPath}"`;
+  let whatwebCmd =
+  `~/WhatWeb/whatweb -a ${aggression} --log-json="${toolPath}"`;
   if (verbose) whatwebCmd += " -v";
   whatwebCmd += ` "${target}"`;
 
@@ -53,9 +54,20 @@ export async function installWhatWeb(
 ): Promise<boolean> {
   const escapedPassword = password.replace(/'/g, "'\\''");
   callbacks.onOutput?.("Installing WhatWeb...");
-  
-  const script = `echo '${escapedPassword}' | sudo -S apt-get update && echo '${escapedPassword}' | sudo -S apt-get install -y whatweb && echo 'WHATWEB_INSTALL_SUCCESS'`;
-  
+
+  const script = `
+echo '${escapedPassword}' | sudo -S apt-get update &&
+echo '${escapedPassword}' | sudo -S apt-get install -y ruby-full git build-essential &&
+
+if [ ! -d ~/WhatWeb ]; then
+  git clone https://github.com/urbanadventurer/WhatWeb.git ~/WhatWeb
+fi &&
+
+chmod +x ~/WhatWeb/whatweb &&
+
+echo 'WHATWEB_INSTALL_SUCCESS'
+`;
+
   const result = await runCommand(script, {
     onOutput: (line) => {
       if (!line.includes(password)) callbacks.onOutput?.(line);
@@ -77,6 +89,8 @@ export async function installWhatWeb(
 
 //check if whatweb is installed
 export async function checkWhatWebInstalled(): Promise<boolean> {
-  const result = await runCommand("which whatweb > /dev/null 2>&1 && echo 'FOUND' || echo 'NOT_FOUND'");
+  const result = await runCommand(
+  '[ -f ~/WhatWeb/whatweb ] && echo "FOUND" || echo "NOT_FOUND"'
+);
   return result.output.some((line) => line.includes("FOUND") && !line.includes("NOT_FOUND"));
 }
