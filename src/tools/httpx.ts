@@ -45,7 +45,7 @@ export async function runHttpx(
   const targetLabel = inputFile ? "multi" : target;
   // Ensure we have a valid filename even if target is a URL with special chars
   const safeTargetLabel = targetLabel?.replace(/[^a-zA-Z0-9_-]/g, "_") || "unknown";
-  const winPath = `${docDir}\\NetView\\results\\${engagement}\\httpx_${safeTargetLabel}_${Date.now()}.json`;
+  const winPath = `${docDir}\\NetView\\results\\${engagement}\\active-recon\\httpx\\httpx_${safeTargetLabel}_${Date.now()}.json`;
   const toolPath = convertToToolPath(winPath);
   const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 

@@ -24,7 +24,7 @@ export async function runRustScan(
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
   // RustScan isn't JSON native usually, it pipes to Nmap.
   // But we can just capture output.
-  const winPath = `${docDir}\\NetView\\results\\${engagement}\\rustscan_${targetHost.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.txt`;
+  const winPath = `${docDir}\\NetView\\results\\${engagement}\\active-recon\\RustScan\\rustscan_${targetHost.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.txt`;
   const toolPath = convertToToolPath(winPath);
   const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 

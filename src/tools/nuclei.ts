@@ -19,7 +19,7 @@ export async function runNuclei(
 
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const winPath = `${docDir}\\NetView\\results\\${engagement}\\nuclei_${target.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.json`;
+  const winPath = `${docDir}\\NetView\\results\\${engagement}\\vulnerability-scanning\\nuclei\\nuclei_${target.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.json`;
   const toolPath = convertToToolPath(winPath);
   const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 
@@ -40,17 +40,65 @@ export async function runNuclei(
   // Auto-update templates is common, but maybe skip for speed?
   // cmd += " -update-templates"; 
 
-  const fullCmd = `mkdir -p "${outputDir}" && ${cmd}`;
-  
-  callbacks.onOutput?.(`Executing: ${cmd}`);
+const fullCmd =
+  `mkdir -p "${outputDir}" && ${cmd}`;
 
-  await spawnCommand(["bash", "-c", fullCmd], {
-    onOutput: callbacks.onOutput,
-    onComplete: callbacks.onComplete,
-    onError: callbacks.onError,
-  });
+callbacks.onOutput?.(
+  `Executing: ${cmd}`
+);
 
-  return { outputPath: winPath };
+try {
+  await spawnCommand(
+    ["bash", "-c", fullCmd],
+    {
+      onOutput: callbacks.onOutput,
+
+      onComplete: (success, code) => {
+        if (success) {
+          callbacks.onOutput?.(
+            `\n[Process completed with exit code ${code}]`
+          );
+
+          callbacks.onOutput?.(
+            `Results saved to:\n${winPath}`
+          );
+        }
+
+        callbacks.onComplete?.(
+          success,
+          code
+        );
+      },
+
+      onError: callbacks.onError,
+    }
+  );
+
+  callbacks.onOutput?.(
+    "\n[+] Scan completed successfully"
+  );
+
+  return {
+    outputPath: winPath,
+  };
+} catch (error) {
+  callbacks.onOutput?.(
+    `\n[Error: ${error}]`
+  );
+
+  callbacks.onError?.(
+    String(error)
+  );
+
+  callbacks.onComplete?.(
+    false,
+    -1
+  );
+
+  return {
+    outputPath: "",
+  };
+}
 }
 
 export async function installNuclei(
