@@ -168,47 +168,98 @@ export const useEngagementStore = create<EngagementState>((set, get) => ({
       // Map to EngagementFile format - all files in folder belong to this engagement
       const files: EngagementFile[] = [];
 
-      for (const toolDir of entries) {
-        if (!toolDir.isDirectory || !toolDir.name) continue;
+      for (const divisionDir of entries) {
+        if (!divisionDir.isDirectory || !divisionDir.name) {
+          continue;
+        }
 
-        const toolName = toolDir.name;
+        const divisionName = divisionDir.name;
 
-        const toolPath = await join(engagementDir, toolName);
+        const divisionPath = await join(
+          engagementDir,
+          divisionName
+        );
 
-        let toolFiles;
+        let toolDirs;
 
         try {
-          toolFiles = await readDir(toolPath);
+          toolDirs = await readDir(divisionPath);
         } catch {
           continue;
         }
 
-        for (const entry of toolFiles) {
-          if (!entry.name || entry.isDirectory) continue;
-
-          const filePath = await join(toolPath, entry.name);
-
-          let createdAt = new Date().toISOString();
-
-          try {
-            const fileStats = await stat(filePath);
-
-            if (fileStats.mtime) {
-              createdAt = new Date(fileStats.mtime).toISOString();
-            }
-          } catch (err) {
-            console.error("Failed to read file stats:", err);
+        for (const toolDir of toolDirs) {
+          if (!toolDir.isDirectory || !toolDir.name) {
+            continue;
           }
 
-          files.push({
-            id: files.length,
-            engagementId: 0,
-            fileName: entry.name,
-            filePath,
-            toolName:
-              toolName.charAt(0).toUpperCase() + toolName.slice(1),
-            createdAt,
-          });
+          const toolName = toolDir.name;
+
+          const toolPath = await join(
+            divisionPath,
+            toolName
+          );
+
+          let toolFiles;
+
+          try {
+            toolFiles = await readDir(toolPath);
+          } catch {
+            continue;
+          }
+
+          for (const entry of toolFiles) {
+            if (!entry.name || entry.isDirectory) {
+              continue;
+            }
+
+            const filePath = await join(
+              toolPath,
+              entry.name
+            );
+
+            let createdAt =
+              new Date().toISOString();
+
+            try {
+              const fileStats =
+                await stat(filePath);
+
+              if (fileStats.mtime) {
+                createdAt = new Date(
+                  fileStats.mtime
+                ).toISOString();
+              }
+            } catch (err) {
+              console.error(
+                "Failed to read file stats:",
+                err
+              );
+            }
+
+            files.push({
+              id: files.length,
+              engagementId: 0,
+
+              fileName: entry.name,
+
+              filePath,
+
+              toolName:
+                toolName
+                  .split(/[-_]/g)
+                  .map(
+                    part =>
+                      part.charAt(0).toUpperCase() +
+                      part.slice(1)
+                  )
+                  .join(""),
+
+              createdAt,
+
+              divisionName,
+            });
+          }
         }
       }
 
@@ -217,6 +268,41 @@ export const useEngagementStore = create<EngagementState>((set, get) => ({
         (a, b) =>
           new Date(b.createdAt).getTime() -
           new Date(a.createdAt).getTime()
+      );
+      console.log(
+        "Loaded Engagement Files:",
+        files
+      );
+      const groupedFiles = files.reduce(
+        (acc, file) => {
+          const division =
+            file.divisionName || "other";
+
+          const tool =
+            file.toolName || "Unknown";
+
+          if (!acc[division]) {
+            acc[division] = {};
+          }
+
+          if (!acc[division][tool]) {
+            acc[division][tool] = [];
+          }
+
+          acc[division][tool].push(file);
+
+          return acc;
+        },
+
+        {} as Record<
+          string,
+          Record<string, EngagementFile[]>
+        >
+      );
+
+      console.log(
+        "Grouped Files:",
+        groupedFiles
       );
 
       console.log("[loadFiles] Final file count:", files.length);
