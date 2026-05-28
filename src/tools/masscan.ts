@@ -17,7 +17,7 @@ export async function runMasscan(
   const safeTarget = target.replace(/[^a-zA-Z0-9._-]/g, "_");
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const winPath = `${docDir}\\NetView\\results\\${engagement}\\masscan_${safeTarget}_${Date.now()}.json`;
+  const winPath = `${docDir}\\NetView\\results\\${engagement}\\active-recon\\masscan\\masscan_${safeTarget}_${Date.now()}.json`;
   const toolPath = convertToToolPath(winPath);
   const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 
@@ -28,7 +28,8 @@ export async function runMasscan(
   // Ideally, UI should prompt for sudo password if not cached. 
   // We'll exclude 'sudo' for now and assume capabilities are set or user handles it.
 
-  let cmd = `masscan "${target}" -p${ports} --rate=${rate} -oJ "${toolPath}"`;
+  let cmd =
+  `masscan "${target}" -p${ports} --rate=${rate} --wait 0 -oJ "${toolPath}"`;
 
   // Check if masscan has required capabilities
   callbacks.onOutput?.(`Checking Masscan capabilities...`);
@@ -50,7 +51,7 @@ export async function runMasscan(
     );
 
     callbacks.onOutput?.(
-      `sudo setcap cap_net_raw,cap_net_admin=eip $(which masscan)
+      `sudo setcap cap_net_raw,cap_net_admin=eip /usr/bin/masscan
     After running the above command in WSL:-
     1.Restart Netview
     2.Run this scan again`
@@ -65,18 +66,65 @@ export async function runMasscan(
   // NOTE: Typically needs sudo. 
   // cmd = `echo '${options.password}' | sudo -S ` + cmd; // IF we had password in options.
 
-  const fullCmd = `mkdir -p "${outputDir}" && ${cmd}`;
+  const fullCmd =
+    `mkdir -p "${outputDir}" && ${cmd}`;
 
-  callbacks.onOutput?.(`Executing: ${cmd}`);
+  callbacks.onOutput?.(
+    `Executing: ${cmd}`
+  );
 
-  await spawnCommand(["bash", "-c", fullCmd], {
-    onOutput: callbacks.onOutput,
-    onComplete: callbacks.onComplete,
-    onError: callbacks.onError,
-  });
-  callbacks.onOutput?.("\n[+] Scan completed successfully");
-  callbacks.onOutput?.(`Results saved to:\n${winPath}`);
-  return { outputPath: winPath };
+  try {
+    await spawnCommand(
+      ["bash", "-c", fullCmd],
+      {
+        onOutput: callbacks.onOutput,
+
+        onComplete: (success, code) => {
+          if (success) {
+            callbacks.onOutput?.(
+              `\n[Process completed with exit code ${code}]`
+            );
+
+            callbacks.onOutput?.(
+              `Results saved to:\n${winPath}`
+            );
+          }
+
+          callbacks.onComplete?.(
+            success,
+            code
+          );
+        },
+
+        onError: callbacks.onError,
+      }
+    );
+
+    callbacks.onOutput?.(
+      "\n[+] Scan completed successfully"
+    );
+
+    return {
+      outputPath: winPath,
+    };
+  } catch (error) {
+    callbacks.onOutput?.(
+      `\n[Error: ${error}]`
+    );
+
+    callbacks.onError?.(
+      String(error)
+    );
+
+    callbacks.onComplete?.(
+      false,
+      -1
+    );
+
+    return {
+      outputPath: "",
+    };
+  }
 
 }
 
@@ -91,7 +139,7 @@ export async function installMasscan(
   const script = `
 echo '${escapedPassword}' | sudo -S apt-get update &&
 echo '${escapedPassword}' | sudo -S apt-get install -y masscan &&
-echo '${escapedPassword}' | sudo -S setcap cap_net_raw,cap_net_admin=eip $(which masscan) &&
+echo '${escapedPassword}' | sudo -S setcap cap_net_raw,cap_net_admin=eip /usr/bin/masscan &&
 echo 'INSTALL_SUCCESS'
 `;
 
