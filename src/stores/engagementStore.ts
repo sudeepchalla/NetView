@@ -166,43 +166,51 @@ export const useEngagementStore = create<EngagementState>((set, get) => ({
       console.log("[loadFiles] Directory entries:", entries.map(e => e.name));
 
       // Map to EngagementFile format - all files in folder belong to this engagement
-      const files: EngagementFile[] = await Promise.all(
-        entries
-          .filter(entry => entry.name && !entry.isDirectory)
-          .map(async (entry, index) => {
+      const files: EngagementFile[] = [];
 
-            const parts = entry.name?.split("_") || [];
-            const toolName = parts[0] || "Unknown";
+      for (const toolDir of entries) {
+        if (!toolDir.isDirectory || !toolDir.name) continue;
 
-            const filePath = `${engagementDir}\\${entry.name}`;
+        const toolName = toolDir.name;
 
-            // Read actual file metadata
-            let createdAt = new Date().toISOString();
+        const toolPath = await join(engagementDir, toolName);
 
-            try {
-              const fileStats = await stat(filePath);
-            console.log("MTIME VALUE:", fileStats.mtime);
-            console.log("FULL FILE STATS:", fileStats);
+        let toolFiles;
 
-              if (fileStats.mtime) {
-                createdAt = new Date(fileStats.mtime).toISOString();
-              }
+        try {
+          toolFiles = await readDir(toolPath);
+        } catch {
+          continue;
+        }
 
-            } catch (err) {
-              console.error("Failed to read file stats:", err);
+        for (const entry of toolFiles) {
+          if (!entry.name || entry.isDirectory) continue;
+
+          const filePath = await join(toolPath, entry.name);
+
+          let createdAt = new Date().toISOString();
+
+          try {
+            const fileStats = await stat(filePath);
+
+            if (fileStats.mtime) {
+              createdAt = new Date(fileStats.mtime).toISOString();
             }
+          } catch (err) {
+            console.error("Failed to read file stats:", err);
+          }
 
-            return {
-              id: index,
-              engagementId: 0,
-              fileName: entry.name || "",
-              filePath,
-              toolName:
-                toolName.charAt(0).toUpperCase() + toolName.slice(1),
-              createdAt,
-            };
-          })
-      );
+          files.push({
+            id: files.length,
+            engagementId: 0,
+            fileName: entry.name,
+            filePath,
+            toolName:
+              toolName.charAt(0).toUpperCase() + toolName.slice(1),
+            createdAt,
+          });
+        }
+      }
 
       // Sort by filename descending (newest first since timestamp is in name)
       files.sort(

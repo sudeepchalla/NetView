@@ -19,7 +19,7 @@ export async function runAmass(
   //setup output paths
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const winPath = `${docDir}\\NetView\\results\\${engagement}\\amass_${target}_${Date.now()}.json`;
+  const winPath = `${docDir}\\NetView\\results\\${engagement}\\passive-recon\\amass\\amass_${target}_${Date.now()}.json`;
   const toolPath = convertToToolPath(winPath);
   const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 
