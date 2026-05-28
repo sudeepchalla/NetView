@@ -21,8 +21,22 @@
     "sql:allow-select",
     "sql:allow-close",
     "fs:default",
+    "fs:allow-document-read",
+    "fs:allow-document-read-recursive",
+    "fs:allow-document-write",
+    "fs:allow-document-write-recursive",
+    "fs:allow-write-text-file",
+    "fs:allow-mkdir",
     {
       "identifier": "fs:allow-read",
+      "allow": [
+        {
+          "path": "$DOCUMENT/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-mkdir",
       "allow": [
         {
           "path": "$DOCUMENT/**"
