@@ -23,13 +23,13 @@ export async function runCrtsh(
 
   try {
     const url =
-      `https://crt.sh/?q=%25.${encodeURIComponent(target)}&output=json`;
-
+      `https://crt.sh/?Identity=%25.${encodeURIComponent(target)}&output=json`;
     callbacks.onOutput?.(`Fetching: ${url}`);
+
 
     const curlCommand =
       `curl -sL -A "Mozilla/5.0" "${url}"`;
-
+    callbacks.onOutput?.(`Executing: ${curlCommand}`);
     const result = await runCommand(curlCommand);
 
     if (result.code !== 0 || !result.output.length) {
@@ -54,7 +54,9 @@ export async function runCrtsh(
 
     const cleanedJson =
       rawResponse.substring(jsonStart);
-
+    callbacks.onOutput?.(
+      `First 500 chars:\n${cleanedJson.substring(0, 500)}`
+    );
     const data = JSON.parse(cleanedJson);
 
     //extract unique domains
