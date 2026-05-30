@@ -1,23 +1,65 @@
 import { documentDir } from "@tauri-apps/api/path";
 import { spawnCommand, convertToToolPath, runCommand } from "./execution";
 import type { BaseToolOptions, ToolCallbacks } from "./types";
+import {
+  exists,
+} from "@tauri-apps/plugin-fs";
 
 export interface MasscanOptions extends BaseToolOptions {
   ports?: string; // -p
   rate?: number; // --rate
+  presetName?: string; // For labeling results when using presets
+  originalTarget?: string; // For labeling results when using presets
 }
 
 export async function runMasscan(
   options: MasscanOptions,
   callbacks: ToolCallbacks
 ): Promise<{ outputPath: string }> {
-  const { target, engagementName = "Default", ports = "80,443", rate = 1000 } = options;
-
+  const { target, engagementName = "Default", ports = "80,443", rate = 1000, presetName, originalTarget } = options;
   if (!target) throw new Error("Target is required");
+  const targetValue = target;
+  let scanTarget = target;
+  // Check if target is already an IPv4 address
+  const isIp =
+    /^(\d{1,3}\.){3}\d{1,3}$/.test(targetValue);
+
+  if (!isIp) {
+    callbacks.onOutput?.(
+      `Resolving ${target} to IP address...`
+    );
+
+    const dnsResult = await runCommand(
+      `getent ahostsv4 "${targetValue}" | head -n 1 | awk '{print $1}'`
+    );
+
+    if (
+      dnsResult.code === 0 &&
+      dnsResult.output.length > 0
+    ) {
+      scanTarget =
+        dnsResult.output[0].trim();
+
+      callbacks.onOutput?.(
+        `Resolved ${target} -> ${scanTarget}`
+      );
+    } else {
+      throw new Error(
+        `Failed to resolve domain: ${target}`
+      );
+    }
+  }
+
   const safeTarget = target.replace(/[^a-zA-Z0-9._-]/g, "_");
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const winPath = `${docDir}\\NetView\\results\\${engagement}\\active-recon\\masscan\\masscan_${safeTarget}_${Date.now()}.json`;
+  const targetLabel =
+    presetName && originalTarget
+      ? `${presetName}_${originalTarget}`
+      : safeTarget;
+  const safeTargetLabel =
+    targetLabel.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const winPath = `${docDir}\\NetView\\results\\${engagement}\\active-recon\\masscan\\masscan_${safeTargetLabel}_${Date.now()}.json`;
   const toolPath = convertToToolPath(winPath);
   const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 
@@ -29,7 +71,7 @@ export async function runMasscan(
   // We'll exclude 'sudo' for now and assume capabilities are set or user handles it.
 
   let cmd =
-  `masscan "${target}" -p${ports} --rate=${rate} --wait 0 -oJ "${toolPath}"`;
+    `masscan "${scanTarget}" -p${ports} --rate=${rate}  -oJ "${toolPath}"`;
 
   // Check if masscan has required capabilities
   callbacks.onOutput?.(`Checking Masscan capabilities...`);
@@ -99,6 +141,17 @@ export async function runMasscan(
         onError: callbacks.onError,
       }
     );
+    const fileExists = await exists(winPath);
+
+    callbacks.onOutput?.(
+      `Masscan output exists: ${fileExists}`
+    );
+
+    if (!fileExists) {
+      throw new Error(
+        `Masscan completed but output file was not created: ${winPath}`
+      );
+    }
 
     callbacks.onOutput?.(
       "\n[+] Scan completed successfully"
