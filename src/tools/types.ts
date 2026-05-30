@@ -9,6 +9,10 @@ export interface BaseToolOptions {
   target?: string;
   inputFile?: string;
   engagementName?: string;
+
+  // Preset execution metadata
+  presetName?: string;
+  originalTarget?: string;
 }
 
 export interface SubfinderOptions extends BaseToolOptions {

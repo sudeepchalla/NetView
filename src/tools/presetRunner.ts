@@ -1,6 +1,12 @@
 import type { WorkflowNode, WorkflowEdge, Preset } from "@/stores/presetStore";
-import { runSubfinder, runHttpx } from "@/tools";
+import { runSubfinder, runHttpx, runCrtsh, runAmass, runWhois, runWhatWeb, runMasscan, runRustScan, runNuclei } from "@/tools";
 import type { ToolCallbacks } from "@/tools";
+import {
+  mkdir,
+  BaseDirectory,
+  writeTextFile,
+  copyFile,
+} from "@tauri-apps/plugin-fs";
 
 export interface PresetRunnerCallbacks {
   onStepStart?: (stepIndex: number, toolName: string) => void;
@@ -8,17 +14,147 @@ export interface PresetRunnerCallbacks {
   onStepComplete?: (stepIndex: number, success: boolean, outputPath?: string) => void;
   onPresetComplete?: (success: boolean, results: string[]) => void;
   onError?: (error: string) => void;
+
 }
 
 interface ToolRunner {
-  run: (options: { target?: string; inputFile?: string; engagementName?: string }, callbacks: ToolCallbacks) => Promise<{ outputPath: string }>;
-}
 
+  run: (
+    options: {
+      target?: string;
+      inputFile?: string;
+      engagementName?: string;
+      presetName?: string;
+      originalTarget?: string;
+    },
+    callbacks: ToolCallbacks
+  ) => Promise<{ outputPath: string }>;
+}
 // Map tool names to their runner functions
 const TOOL_RUNNERS: Record<string, ToolRunner> = {
-  "Subfinder": { run: runSubfinder },
-  "Httpx": { run: runHttpx },
-  // Add more tools as they are implemented
+  // Passive Recon:-Subfinder, CRT.sh, Amass, WhatWeb, Whois
+  //Active Reconnaissance:-Httpx,Rustscan,Masscan
+  //Vulnerability Scanning:-Nuclei
+  Subfinder: {
+    run: (options, callbacks) =>
+      runSubfinder(options, callbacks),
+  },
+
+  Httpx: {
+    run: (options, callbacks) =>
+      runHttpx(options, callbacks),
+  },
+
+  Whois: {
+    run: (options, callbacks) => {
+      if (!options.target) {
+        throw new Error("Whois requires target");
+      }
+
+      return runWhois(
+        {
+          target: options.target,
+          engagementName: options.engagementName,
+        },
+        callbacks
+      );
+    },
+  },
+
+  "CRT.sh": {
+    run: (options, callbacks) => {
+      if (!options.target) {
+        throw new Error("CRT.sh requires target");
+      }
+
+      return runCrtsh(
+        {
+          target: options.target,
+          engagementName: options.engagementName,
+        },
+        callbacks
+      );
+    },
+  },
+
+  Amass: {
+    run: (options, callbacks) => {
+      if (!options.target) {
+        throw new Error("Amass requires target");
+      }
+
+      return runAmass(
+        {
+          target: options.target,
+          engagementName: options.engagementName,
+        },
+        callbacks
+      );
+    },
+  },
+
+  WhatWeb: {
+    run: (options, callbacks) => {
+      if (!options.target) {
+        throw new Error("WhatWeb requires target");
+      }
+
+      return runWhatWeb(
+        {
+          target: options.target,
+          engagementName: options.engagementName,
+        },
+        callbacks
+      );
+    },
+  },
+  Masscan: {
+    run: (options, callbacks) => {
+      if (!options.target) {
+        throw new Error("Masscan requires target");
+      }
+
+      return runMasscan(
+        {
+          target: options.target,
+          engagementName: options.engagementName,
+        },
+        callbacks
+      );
+    },
+  },
+
+  RustScan: {
+    run: (options, callbacks) => {
+      if (!options.target) {
+        throw new Error("RustScan requires target");
+      }
+
+      return runRustScan(
+        {
+          target: options.target,
+          engagementName: options.engagementName,
+        },
+        callbacks
+      );
+    },
+  },
+
+  Nuclei: {
+    run: (options, callbacks) => {
+      if (!options.target) {
+        throw new Error("Nuclei requires target");
+      }
+
+      return runNuclei(
+        {
+          target: options.target,
+          engagementName: options.engagementName,
+        },
+        callbacks
+      );
+    },
+  },
 };
 
 // Get execution order from nodes and edges (topological sort)
@@ -72,7 +208,37 @@ function getPreviousOutputs(
     .map(e => outputMap.get(e.source))
     .filter((p): p is string => !!p);
 }
+async function copyResultToPresetFolder(
+  sourcePath: string,
+  engagementName: string,
+  presetFolder: string,
+  presetRunFolder: string
+) {
+  const fileName =
+    sourcePath.split(/[\\/]/).pop();
 
+  if (!fileName) return;
+
+  // Convert Windows absolute path to Document-relative path
+  const relativeSource =
+    sourcePath.replace(
+      /^.*?NetView[\\/]/,
+      "NetView/"
+    ).replace(/\\/g, "/");
+
+  const destination =
+    `NetView/results/${engagementName}/presets/${presetFolder}/${presetRunFolder}/${fileName}`;
+  console.log("SOURCE:", relativeSource);
+  console.log("DEST:", destination);
+  await copyFile(
+    relativeSource,
+    destination,
+    {
+      fromPathBaseDir: BaseDirectory.Document,
+      toPathBaseDir: BaseDirectory.Document,
+    }
+  );
+}
 export async function runPreset(
   preset: Preset,
   targetDomain: string,
@@ -82,8 +248,32 @@ export async function runPreset(
   const executionOrder = getExecutionOrder(preset.nodes, preset.edges);
   const outputMap = new Map<string, string>(); // nodeId -> outputPath
   const allResults: string[] = [];
-
+  const safePresetName =
+    preset.name.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const presetFolder =
+    safePresetName;
+  const presetRunFolder =
+    `${targetDomain}_${Date.now()}`
+      .replace(/[^a-zA-Z0-9_-]/g, "_");
   callbacks.onStepOutput?.(0, `Starting preset: ${preset.name}`);
+  try {
+    await mkdir(
+      `NetView/results/${engagementName}/presets/${presetFolder}/${presetRunFolder}`,
+      {
+        baseDir: BaseDirectory.Document,
+        recursive: true,
+      }
+    );
+  } catch (error) {
+    callbacks.onError?.(
+      `Failed to create preset folder: ${error}`
+    );
+    return false;
+  }
+  callbacks.onStepOutput?.(
+    0,
+    `Preset folder created: ${presetRunFolder}`
+  );
   callbacks.onStepOutput?.(0, `Target domain: ${targetDomain}`);
   callbacks.onStepOutput?.(0, `Execution order: ${executionOrder.map(n => n.data.toolName).join(" → ")}\n`);
 
@@ -105,16 +295,23 @@ export async function runPreset(
 
     // Determine input: first tool uses domain, subsequent tools use file from previous
     const previousOutputs = getPreviousOutputs(node.id, preset.edges, outputMap);
-    
-    let options: { target?: string; inputFile?: string; engagementName: string };
-    
+
+    let options: {
+      target?: string; inputFile?: string; engagementName: string;
+      presetName?: string;
+      originalTarget?: string;
+    };
+
     if (previousOutputs.length > 0) {
       // Use output from previous tool as input file
       callbacks.onStepOutput?.(i, `Using input file: ${previousOutputs[0]}`);
-      options = { inputFile: previousOutputs[0], engagementName };
+      options = { inputFile: previousOutputs[0], engagementName, presetName: safePresetName, originalTarget: targetDomain };
     } else {
       // First tool in chain - use target domain
-      options = { target: targetDomain, engagementName };
+      options = {
+        target: targetDomain, engagementName, presetName: safePresetName,
+        originalTarget: targetDomain
+      };
     }
 
     try {
@@ -141,6 +338,20 @@ export async function runPreset(
 
       outputMap.set(node.id, toolOutputPath);
       allResults.push(toolOutputPath);
+
+      try {
+        await copyResultToPresetFolder(
+          toolOutputPath,
+          engagementName,
+          presetFolder,
+          presetRunFolder
+        );
+      } catch (error) {
+        callbacks.onStepOutput?.(
+          i,
+          `Failed to copy result to preset folder: ${error}`
+        );
+      }
       callbacks.onStepComplete?.(i, toolSuccess, toolOutputPath);
 
       if (!toolSuccess) {
@@ -160,6 +371,35 @@ export async function runPreset(
   callbacks.onStepOutput?.(executionOrder.length - 1, `\n${"=".repeat(50)}`);
   callbacks.onStepOutput?.(executionOrder.length - 1, `✓ Preset "${preset.name}" completed successfully!`);
   callbacks.onStepOutput?.(executionOrder.length - 1, `${"=".repeat(50)}`);
+  const summaryPath =
+    `NetView/results/${engagementName}/presets/${presetFolder}/${presetRunFolder}/summary.json`;
+  await writeTextFile(
+    summaryPath,
+    JSON.stringify(
+      {
+        preset: preset.name,
+        target: targetDomain,
+        engagement: engagementName,
+        status: "success",
+        completedAt: new Date().toISOString(),
+        results: allResults,
+      },
+      null,
+      2
+    ),
+    {
+      baseDir: BaseDirectory.Document,
+    }
+  );
+  callbacks.onStepOutput?.(
+    executionOrder.length - 1,
+    `Summary saved: ${summaryPath}`
+  );
+  callbacks.onStepOutput?.(
+    executionOrder.length - 1,
+    `Copies of each tool output have been saved to the preset folder.\n 
+    Path: NetView/results/${engagementName}/presets/${presetFolder}/${presetRunFolder}}`
+  );
   callbacks.onPresetComplete?.(true, allResults);
   return true;
 }
