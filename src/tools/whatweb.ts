@@ -7,6 +7,8 @@ export interface WhatWebOptions {
   aggression?: 1 | 2 | 3 | 4;
   verbose?: boolean;
   engagementName?: string;
+  presetName?: string;
+  originalTarget?: string;
 }
 
 //run whatweb against target url
@@ -14,12 +16,18 @@ export async function runWhatWeb(
   options: WhatWebOptions,
   callbacks: ToolCallbacks
 ): Promise<{ outputPath: string }> {
-  const { target, aggression = 1, verbose = false, engagementName = "Default" } = options;
+  const { target, aggression = 1, verbose = false, engagementName = "Default",presetName,originalTarget } = options;
 
   //setup output paths
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const winPath = `${docDir}\\NetView\\results\\${engagement}\\passive-recon\\whatweb\\whatweb_${target.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.json`;
+  const targetLabel =
+  presetName && originalTarget
+    ? `${presetName}_${originalTarget}`
+    : target;
+const safeTargetLabel =
+  targetLabel.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const winPath = `${docDir}\\NetView\\results\\${engagement}\\passive-recon\\whatweb\\whatweb_${safeTargetLabel}_${Date.now()}.json`;
   const toolPath = convertToToolPath(winPath);
   const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 

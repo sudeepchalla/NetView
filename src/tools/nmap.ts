@@ -9,6 +9,8 @@ export interface NmapOptions extends BaseToolOptions {
   osDetection?: boolean; // -O
   timingTemplate?: number; // -T<0-5>
   fastMode?: boolean; // -F
+  presetName?: string; // For labeling results when using presets
+  originalTarget?: string; // For labeling results when using presets
 }
 
 export async function runNmap(
@@ -23,7 +25,9 @@ export async function runNmap(
     allPorts,
     osDetection,
     timingTemplate = 4,
-    fastMode
+    fastMode,
+    presetName,
+    originalTarget
   } = options;
 
   if (!target) {
@@ -32,7 +36,12 @@ export async function runNmap(
 
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const winPath = `${docDir}\\NetView\\results\\${engagement}\\active-recon\\Nmap\\nmap_${target}_${Date.now()}.txt`; // Nmap typically outputs text or xml
+  const targetLabel =
+    presetName && originalTarget
+      ? `${presetName}_${originalTarget}`
+      : target;
+  const safeTargetLabel = targetLabel.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const winPath = `${docDir}\\NetView\\results\\${engagement}\\active-recon\\Nmap\\nmap_${safeTargetLabel}_${Date.now()}.txt`; // Nmap typically outputs text or xml
   const toolPath = convertToToolPath(winPath);
   const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 

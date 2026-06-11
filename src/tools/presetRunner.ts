@@ -1,5 +1,5 @@
 import type { WorkflowNode, WorkflowEdge, Preset } from "@/stores/presetStore";
-import { runSubfinder, runHttpx, runCrtsh, runAmass, runWhois, runWhatWeb, runMasscan, runRustScan, runNuclei } from "@/tools";
+import { runSubfinder, runHttpx, runCrtsh, runAmass, runWhois, runWhatWeb, runMasscan, runRustScan, runNuclei,runNmap } from "@/tools";
 import type { ToolCallbacks } from "@/tools";
 import {
   mkdir,
@@ -33,7 +33,7 @@ interface ToolRunner {
 // Map tool names to their runner functions
 const TOOL_RUNNERS: Record<string, ToolRunner> = {
   // Passive Recon:-Subfinder, CRT.sh, Amass, WhatWeb, Whois
-  //Active Reconnaissance:-Httpx,Rustscan,Masscan
+  //Active Reconnaissance:-Httpx,Rustscan,Masscan,Nmap
   //Vulnerability Scanning:-Nuclei
   Subfinder: {
     run: (options, callbacks) =>
@@ -155,6 +155,23 @@ const TOOL_RUNNERS: Record<string, ToolRunner> = {
       );
     },
   },
+  Nmap: {
+    run: (options, callbacks) => {
+      if (!options.target) {
+        throw new Error("Nmap requires target");
+      }
+
+      return runNmap(
+        {
+          target: options.target,
+          engagementName: options.engagementName,
+          presetName: options.presetName,
+          originalTarget: options.originalTarget
+        },
+        callbacks
+      );
+    },
+  }
 };
 
 // Get execution order from nodes and edges (topological sort)

@@ -7,19 +7,27 @@ export interface NucleiOptions extends BaseToolOptions {
   templates?: string[]; // -t (list of templates or tags)
   severity?: string[];  // -severity
   noInteractsh?: boolean; // -no-interactsh (privacy)
+  presetName?: string; // For labeling results when using presets
+  originalTarget?: string; // For labeling results when using presets
 }
 
 export async function runNuclei(
   options: NucleiOptions,
   callbacks: ToolCallbacks
 ): Promise<{ outputPath: string }> {
-  const { target, engagementName = "Default", templates, severity, noInteractsh } = options;
+  const { target, engagementName = "Default", templates, severity, noInteractsh,presetName,originalTarget } = options;
 
   if (!target) throw new Error("Target is required");
 
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const winPath = `${docDir}\\NetView\\results\\${engagement}\\vulnerability-scanning\\nuclei\\nuclei_${target.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.json`;
+  const targetLabel =
+  presetName && originalTarget
+    ? `${presetName}_${originalTarget}`
+    : target;
+const safeTargetLabel =
+  targetLabel.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const winPath = `${docDir}\\NetView\\results\\${engagement}\\vulnerability-scanning\\nuclei\\nuclei_${safeTargetLabel}_${Date.now()}.json`;
   const toolPath = convertToToolPath(winPath);
   const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 

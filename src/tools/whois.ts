@@ -5,6 +5,8 @@ import type { ToolCallbacks } from "./types";
 export interface WhoisOptions {
   target: string;
   engagementName?: string;
+  presetName?: string;
+  originalTarget?: string;
 }
 
 //run whois lookup against target
@@ -12,12 +14,18 @@ export async function runWhois(
   options: WhoisOptions,
   callbacks: ToolCallbacks
 ): Promise<{ outputPath: string }> {
-  const { target, engagementName = "Default" } = options;
+  const { target, engagementName = "Default",presetName,originalTarget } = options;
 
   //setup output paths
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const winPath = `${docDir}\\NetView\\results\\${engagement}\\passive-recon\\whois\\whois_${target.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.txt`;
+  const targetLabel =
+  presetName && originalTarget
+    ? `${presetName}_${originalTarget}`
+    : target;
+const safeTargetLabel =
+  targetLabel.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const winPath = `${docDir}\\NetView\\results\\${engagement}\\passive-recon\\whois\\whois_${safeTargetLabel}_${Date.now()}.txt`;
   const toolPath = convertToToolPath(winPath);
   const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 

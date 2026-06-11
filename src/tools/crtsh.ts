@@ -10,6 +10,8 @@ export interface CrtshOptions {
   target: string;
   includeExpired?: boolean;
   engagementName?: string;
+  presetName?: string;
+  originalTarget?: string;
 }
 
 //query crt.sh for subdomains via certificate transparency logs
@@ -17,7 +19,7 @@ export async function runCrtsh(
   options: CrtshOptions,
   callbacks: ToolCallbacks
 ): Promise<{ outputPath: string; results: string[] }> {
-  const { target, engagementName = "Default" } = options;
+  const { target, engagementName = "Default",presetName,originalTarget } = options;
 
   callbacks.onOutput?.(`Querying crt.sh for: ${target}`);
 
@@ -96,9 +98,19 @@ export async function runCrtsh(
         /[^a-zA-Z0-9_-]/g,
         "_"
       );
+      const targetLabel =
+  presetName && originalTarget
+    ? `${presetName}_${originalTarget}`
+    : target;
+
+const safeTargetLabel =
+  targetLabel.replace(
+    /[^a-zA-Z0-9_-]/g,
+    "_"
+  );
 
     const fileName =
-      `crtsh_${target}_${Date.now()}.txt`;
+      `crtsh_${safeTargetLabel}_${Date.now()}.txt`;
 
     const outputDir =
       `NetView/results/${engagement}/passive-recon/crtsh`;

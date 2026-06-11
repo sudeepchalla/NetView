@@ -6,13 +6,15 @@ export interface RustScanOptions extends BaseToolOptions {
   addresses?: string; // -a (CIDR or IP)
   ports?: string; // -p
   range?: string; // -r
+  presetName?: string; // For labeling results when using presets
+  originalTarget?: string; // For labeling results when using presets
 }
 
 export async function runRustScan(
   options: RustScanOptions,
   callbacks: ToolCallbacks
 ): Promise<{ outputPath: string }> {
-  const { target, engagementName = "Default", addresses, ports, range } = options;
+  const { target, engagementName = "Default", addresses, ports, range, presetName, originalTarget } = options;
 
   const targetHost = addresses || target;
 
@@ -24,7 +26,16 @@ export async function runRustScan(
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
   // RustScan isn't JSON native usually, it pipes to Nmap.
   // But we can just capture output.
-  const winPath = `${docDir}\\NetView\\results\\${engagement}\\active-recon\\RustScan\\rustscan_${targetHost.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.txt`;
+  const targetLabel =
+  presetName && originalTarget
+    ? `${presetName}_${originalTarget}`
+    : targetHost;
+const safeTargetLabel =
+  targetLabel.replace(
+    /[^a-zA-Z0-9_-]/g,
+    "_"
+  );
+  const winPath = `${docDir}\\NetView\\results\\${engagement}\\active-recon\\RustScan\\rustscan_${safeTargetLabel}_${Date.now()}.txt`;
   const toolPath = convertToToolPath(winPath);
   const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 

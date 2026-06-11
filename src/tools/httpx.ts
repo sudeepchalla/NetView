@@ -12,6 +12,8 @@ export interface HttpxOptions extends BaseToolOptions {
   asn?: boolean;
   cdn?: boolean;
   location?: boolean;
+
+
 }
 
 //run httpx against target or list of targets
@@ -19,19 +21,21 @@ export async function runHttpx(
   options: HttpxOptions,
   callbacks: ToolCallbacks
 ): Promise<{ outputPath: string }> {
-  const { 
-    target, 
-    inputFile, 
-    engagementName = "Default", 
-    statusCode, 
-    title, 
-    tech, 
+  const {
+    target,
+    inputFile,
+    engagementName = "Default",
+    statusCode,
+    title,
+    tech,
     followRedirects,
     ip,
     cname,
     asn,
     cdn,
-    location
+    location,
+    originalTarget,
+    presetName,
   } = options;
 
   // Validate: either target or inputFile must be provided
@@ -42,7 +46,11 @@ export async function runHttpx(
   //setup output paths
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const targetLabel = inputFile ? "multi" : target;
+  const targetLabel =
+  presetName && originalTarget
+    ? `${presetName}_${originalTarget}`
+    : originalTarget ??
+      (inputFile ? "multi" : target);
   // Ensure we have a valid filename even if target is a URL with special chars
   const safeTargetLabel = targetLabel?.replace(/[^a-zA-Z0-9_-]/g, "_") || "unknown";
   const winPath = `${docDir}\\NetView\\results\\${engagement}\\active-recon\\httpx\\httpx_${safeTargetLabel}_${Date.now()}.json`;
@@ -56,7 +64,7 @@ export async function runHttpx(
   // -no-fallback: don't try HTTP if HTTPS fails (faster)
   // -threads 25: moderate parallelism
   const baseFlags = "-timeout 3 -retries 1 -no-fallback -threads 25";
-  
+
   if (inputFile) {
     const toolInputPath = convertToToolPath(inputFile);
     // Use cat + pipe instead of -l flag (more reliable with WSL paths)
