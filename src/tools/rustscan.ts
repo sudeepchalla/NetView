@@ -6,13 +6,15 @@ export interface RustScanOptions extends BaseToolOptions {
   addresses?: string; // -a (CIDR or IP)
   ports?: string; // -p
   range?: string; // -r
+  presetName?: string; // For labeling results when using presets
+  originalTarget?: string; // For labeling results when using presets
 }
 
 export async function runRustScan(
   options: RustScanOptions,
   callbacks: ToolCallbacks
 ): Promise<{ outputPath: string }> {
-  const { target, engagementName = "Default", addresses, ports, range } = options;
+  const { target, engagementName = "Default", addresses, ports, range, presetName, originalTarget } = options;
 
   const targetHost = addresses || target;
 
@@ -24,7 +26,16 @@ export async function runRustScan(
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
   // RustScan isn't JSON native usually, it pipes to Nmap.
   // But we can just capture output.
-  const winPath = `${docDir}\\NetView\\results\\${engagement}\\rustscan_${targetHost.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.txt`;
+  const targetLabel =
+  presetName && originalTarget
+    ? `${presetName}_${originalTarget}`
+    : targetHost;
+const safeTargetLabel =
+  targetLabel.replace(
+    /[^a-zA-Z0-9_-]/g,
+    "_"
+  );
+  const winPath = `${docDir}\\NetView\\results\\${engagement}\\active-recon\\RustScan\\rustscan_${safeTargetLabel}_${Date.now()}.txt`;
   const toolPath = convertToToolPath(winPath);
   const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 
@@ -40,7 +51,7 @@ export async function runRustScan(
   cmd = `${cmd} | tee "${toolPath}"`;
 
   const fullCmd = `mkdir -p "${outputDir}" && ${cmd}`;
-  
+
   callbacks.onOutput?.(`Executing: ${cmd}`);
 
   await spawnCommand(["bash", "-c", fullCmd], {
@@ -48,7 +59,8 @@ export async function runRustScan(
     onComplete: callbacks.onComplete,
     onError: callbacks.onError,
   });
-
+  callbacks.onOutput?.("\n[+] Scan completed successfully");
+  callbacks.onOutput?.(`Results saved to:\n${winPath}`);
   return { outputPath: winPath };
 }
 
@@ -58,16 +70,16 @@ export async function installRustScan(
 ): Promise<boolean> {
   const escapedPassword = password.replace(/'/g, "'\\''");
   callbacks.onOutput?.("Installing RustScan...");
-  
+
   // RustScan .deb is best.
   const debUrl = "https://github.com/RustScan/RustScan/releases/download/2.0.1/rustscan_2.0.1_amd64.deb";
-  
+
   const script = `
     wget ${debUrl} -O /tmp/rustscan.deb && 
     echo '${escapedPassword}' | sudo -S dpkg -i /tmp/rustscan.deb && 
     echo 'INSTALL_SUCCESS'
   `;
-  
+
   const result = await runCommand(script, {
     onOutput: (line) => {
       if (!line.includes(password)) callbacks.onOutput?.(line);

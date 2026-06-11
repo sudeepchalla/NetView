@@ -48,7 +48,6 @@ import {
   runAsnmap,
   installAsnmap,
   runShodan,
-  installShodan,
   runWhois,
   installWhois,
   runWhatWeb,
@@ -1095,7 +1094,6 @@ function ShodanConfig({
     message: string;
   }>({ type: null, message: "" });
 
-  const { markInstalled } = useToolsStore();
 
   const handleRun = async () => {
     const toolName = tool.name;
@@ -1121,41 +1119,27 @@ function ShodanConfig({
     setShowPasswordDialog(true);
   };
 
-  const handleInstall = async (password: string) => {
-    setShowPasswordDialog(false);
-    setIsInstalling(true);
-    setInstallStatus({ type: null, message: "" });
+const handleInstall = async () => {
+  setShowPasswordDialog(false);
+  setIsInstalling(true);
+  setInstallStatus({ type: null, message: "" });
 
-    const toolName = tool.name;
-    setOutputs(toolName, [`Starting ${toolName} installation...`]);
-    setActiveTerminal(tool);
-    setTimeout(() => onInstallStart(), 100);
+  const toolName = tool.name;
 
-    await installShodan(password, {
-      onOutput: (line) => {
-        if (!line.includes(password)) {
-          addOutput(toolName, line);
-        }
-      },
-      onComplete: async (success) => {
-        setIsInstalling(false);
-        setSudoPassword("");
-        if (success) {
-          setInstallStatus({
-            type: "success",
-            message: `${toolName} installed successfully!`,
-          });
-          await markInstalled(toolName);
-        } else {
-          setInstallStatus({
-            type: "error",
-            message: "Installation failed. Check terminal output.",
-          });
-        }
-      },
-      onError: (error) => addOutput(toolName, `\n[Error: ${error}]`),
-    });
-  };
+  setOutputs(toolName, [
+    `Starting ${toolName} installation...`
+  ]);
+
+  setActiveTerminal(tool);
+  setTimeout(() => onInstallStart(), 100);
+
+  setInstallStatus({
+    type: "success",
+    message: "Shodan API mode ready",
+  });
+
+  setIsInstalling(false);
+};
 
   return (
     <div className="space-y-4">
@@ -1200,7 +1184,7 @@ function ShodanConfig({
                 className="col-span-3"
                 autoFocus
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") handleInstall(sudoPassword);
+                  if (e.key === "Enter") handleInstall();
                 }}
               />
             </div>
@@ -1212,7 +1196,7 @@ function ShodanConfig({
             >
               Cancel
             </Button>
-            <Button onClick={() => handleInstall(sudoPassword)}>
+            <Button onClick={() => handleInstall()}>
               Confirm Install
             </Button>
           </DialogFooter>

@@ -21,22 +21,51 @@
     "sql:allow-select",
     "sql:allow-close",
     "fs:default",
+    "fs:allow-document-read",
+    "fs:allow-document-read-recursive",
+    "fs:allow-document-write",
+    "fs:allow-document-write-recursive",
+    "fs:allow-write-text-file",
+    "fs:allow-mkdir",
+    "fs:allow-copy-file",
     {
       "identifier": "fs:allow-read",
       "allow": [
-        { "path": "$DOCUMENT/**" }
+        {
+          "path": "$DOCUMENT/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-mkdir",
+      "allow": [
+        {
+          "path": "$DOCUMENT/**"
+        }
       ]
     },
     {
       "identifier": "fs:allow-write",
       "allow": [
-        { "path": "$DOCUMENT/**" }
+        {
+          "path": "$DOCUMENT/**"
+        }
       ]
     },
     {
       "identifier": "fs:allow-read-dir",
       "allow": [
-        { "path": "$DOCUMENT/**" }
+        {
+          "path": "$DOCUMENT/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-stat",
+      "allow": [
+        {
+          "path": "$DOCUMENT/**"
+        }
       ]
     }
   ]

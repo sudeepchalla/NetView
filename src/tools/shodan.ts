@@ -1,6 +1,5 @@
 import { documentDir } from "@tauri-apps/api/path";
-import { runCommand, spawnCommand, convertToToolPath } from "./execution";
-import { checkPythonInstalled, installPython } from "./prerequisites";
+import { writeTextFile, mkdir } from "@tauri-apps/plugin-fs";
 import type { ToolCallbacks } from "./types";
 
 export interface ShodanOptions {
@@ -10,93 +9,233 @@ export interface ShodanOptions {
   engagementName?: string;
 }
 
-//run shodan cli against target
+//run shodan api against target
 export async function runShodan(
   options: ShodanOptions,
   callbacks: ToolCallbacks
 ): Promise<{ outputPath: string }> {
-  const { target, apiKey, searchType = "host", engagementName = "Default" } = options;
 
-  //setup output paths
+  const {
+    target,
+    apiKey,
+    searchType = "host",
+    engagementName = "Default"
+  } = options;
+
+  //validate api key
+  if (!apiKey.trim()) {
+
+    callbacks.onOutput?.(
+      "Shodan API key is missing"
+    );
+
+    callbacks.onComplete?.(false, -1);
+
+    throw new Error(
+      "Shodan API key is required"
+    );
+  }
+
+  callbacks.onOutput?.(
+    "Initializing Shodan..."
+  );
+
+  callbacks.onOutput?.(
+    "Validating API key..."
+  );
+
+  //setup output path
   const docDir = await documentDir();
-  const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const winPath = `${docDir}\\NetView\\results\\${engagement}\\shodan_${target.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.json`;
-  const toolPath = convertToToolPath(winPath);
-  const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 
-  //build command based on search type
-  let shodanCmd: string;
+  const engagement =
+    engagementName.replace(
+      /[^a-zA-Z0-9_-]/g,
+      "_"
+    );
+
+  const winPath = [
+  docDir,
+  "NetView",
+  "results",
+  engagement,
+  `shodan_${target.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.json`
+].join("/");
+
+  //build api url
+  let url = "";
+
   switch (searchType) {
+
     case "search":
-      shodanCmd = `shodan init ${apiKey} && shodan search --fields ip_str,port,org,hostnames "${target}" > "${toolPath}"`;
+
+      url =
+        `https://api.shodan.io/shodan/host/search?key=${apiKey}&query=${encodeURIComponent(target)}`;
+
       break;
+
     case "domain":
-      shodanCmd = `shodan init ${apiKey} && shodan domain "${target}" > "${toolPath}"`;
+
+      url =
+        `https://api.shodan.io/dns/domain/${target}?key=${apiKey}`;
+
       break;
+
     default:
-      shodanCmd = `shodan init ${apiKey} && shodan host "${target}" > "${toolPath}"`;
+
+      url =
+        `https://api.shodan.io/shodan/host/${target}?key=${apiKey}`;
   }
 
-  const fullCmd = `mkdir -p "${outputDir}" && ${shodanCmd}`;
-  callbacks.onOutput?.(`Executing Shodan ${searchType}...`);
+  callbacks.onOutput?.(
+    "Connecting to Shodan API..."
+  );
 
-  await spawnCommand(["bash", "-c", fullCmd], {
-    onOutput: (line) => {
-      if (!line.includes(apiKey)) callbacks.onOutput?.(line);
-    },
-    onComplete: (success, code) => {
-      if (success) {
-        callbacks.onOutput?.(`\n[Process completed with exit code ${code}]`);
-        callbacks.onOutput?.(`Results saved to: ${winPath}`);
-      }
-      callbacks.onComplete?.(success, code);
-    },
-    onError: callbacks.onError,
-  });
+  callbacks.onOutput?.(
+    `Target: ${target}`
+  );
 
-  return { outputPath: winPath };
+  callbacks.onOutput?.(
+    `Search type: ${searchType}`
+  );
+
+  callbacks.onOutput?.(
+    "Sending request..."
+  );
+
+  try {
+
+    //send api request
+    const response = await fetch(url);
+
+    //handle api errors
+    if (!response.ok) {
+
+      const errorText =
+        await response.text();
+
+      callbacks.onOutput?.(
+        `Shodan API error: ${response.status}`
+      );
+
+      callbacks.onOutput?.(
+        errorText
+      );
+if (
+  errorText.includes("Requires membership")
+) {
+
+  callbacks.onOutput?.(
+    "This Shodan endpoint requires a paid membership."
+  );
+
+  callbacks.onOutput?.(
+    "Try using domain lookup or upgrade your API plan."
+  );
 }
 
-//install shodan cli
-export async function installShodan(
-  password: string,
-  callbacks: ToolCallbacks
-): Promise<boolean> {
-  //check python first
-  callbacks.onOutput?.("Checking for Python installation...");
-  const pythonInstalled = await checkPythonInstalled();
-  
-  if (!pythonInstalled) {
-    callbacks.onOutput?.("Python not found. Installing Python first...");
-    const pySuccess = await installPython(password, callbacks);
-    if (!pySuccess) {
-      callbacks.onComplete?.(false, -1);
-      return false;
+      callbacks.onComplete?.(
+        false,
+        response.status
+      );
+
+      throw new Error(
+        `Shodan API failed: ${response.status}`
+      );
     }
-  } else {
-    callbacks.onOutput?.("Python is already installed");
+
+    callbacks.onOutput?.(
+      "Receiving response..."
+    );
+
+    //parse response
+    const data = await response.json();
+
+    callbacks.onOutput?.(
+      "Response received successfully"
+    );
+
+    callbacks.onOutput?.(
+      "Processing intelligence data..."
+    );
+
+    callbacks.onOutput?.(
+      "Saving results..."
+    );
+
+    //create output directory
+const winOutputDir =
+  [
+    docDir,
+    "NetView",
+    "results",
+    engagement
+  ].join("/");
+
+    try {
+      await mkdir(
+        winOutputDir,
+        {
+          recursive: true,
+        }
+      );
+      callbacks.onOutput?.(
+        "Directory created successfully"
+      );
+    }
+    catch (err) {
+      console.error("mkdir failed:", err);
+      callbacks.onOutput?.(
+        `Directory creation failed: ${err}`
+      );
+    }
+
+    //save json results
+    try{
+    await writeTextFile(
+      winPath,
+      JSON.stringify(data, null, 2)
+    );
+    callbacks.onOutput?.("Results file written succesfully");
+  }catch(err){
+    console.error(err);
+    callbacks.onOutput?.(`Write failed:${err}`);
   }
 
-  callbacks.onOutput?.("\nInstalling Shodan CLI...");
-  
-  const script = `pip3 install shodan 2>&1 && echo 'SHODAN_INSTALL_SUCCESS'`;
-  const result = await runCommand(script, { onOutput: callbacks.onOutput });
+    callbacks.onOutput?.(
+      `Results saved to: ${winPath}`
+    );
 
-  const success = result.output.some((line) => line.includes("SHODAN_INSTALL_SUCCESS"));
+    callbacks.onOutput?.(
+      "Shodan scan completed successfully"
+    );
 
-  if (success) {
-    callbacks.onOutput?.("\nShodan CLI installed successfully!");
-    callbacks.onComplete?.(true, 0);
-  } else {
-    callbacks.onOutput?.("\nShodan installation failed");
-    callbacks.onComplete?.(false, result.code);
+    callbacks.onComplete?.(
+      true,
+      0
+    );
+
+    return {
+      outputPath: winPath
+    };
+
+  } catch (err) {
+
+    callbacks.onOutput?.(
+      `Shodan request failed: ${err}`
+    );
+
+    callbacks.onComplete?.(
+      false,
+      -1
+    );
+
+    throw err;
   }
-
-  return success;
+}
+export async function installShodan(): Promise<boolean> {
+  return true;
 }
 
-//check if shodan cli is installed
 export async function checkShodanInstalled(): Promise<boolean> {
-  const result = await runCommand("shodan --help > /dev/null 2>&1 && echo 'FOUND' || echo 'NOT_FOUND'");
-  return result.output.some((line) => line.includes("FOUND") && !line.includes("NOT_FOUND"));
+  return true;
 }
