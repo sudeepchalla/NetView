@@ -39,6 +39,24 @@ interface TechStackResult {
   email?: string[];
 }
 
+interface ActivePortResult {
+  port: number;
+  protocol: string;
+  state: string;
+  service: string;
+  version?: string;
+  host: string;
+}
+
+interface VulnerabilityResult {
+  template: string;
+  name: string;
+  severity: string;
+  host: string;
+  description?: string;
+  extractedResults?: string[];
+}
+
 // --- Components ---
 
 const StatCard = ({
@@ -157,6 +175,8 @@ export function Summary() {
   const [subdomains, setSubdomains] = useState<SubdomainResult[]>([]);
   const [techStacks, setTechStacks] = useState<TechStackResult[]>([]);
   const [emails, setEmails] = useState<string[]>([]);
+  const [activePorts, setActivePorts] = useState<ActivePortResult[]>([]);
+  const [vulnerabilities, setVulnerabilities] = useState<VulnerabilityResult[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -174,16 +194,17 @@ export function Summary() {
       const newSubdomains: SubdomainResult[] = [];
       const newTechStacks: TechStackResult[] = [];
       const newEmails: Set<string> = new Set();
+      const newActivePorts: ActivePortResult[] = [];
+      const newVulnerabilities: VulnerabilityResult[] = [];
 
       for (const file of currentFiles) {
         try {
           if (file.toolName === "Subfinder" || file.toolName === "Amass") {
             const content = await readTextFile(file.filePath);
-            // Verify if content is line-delimited JSON or array
-            // Tools like subfinder -json output line-delimited JSON
             const lines = content.split("\n").filter(Boolean);
             lines.forEach((line) => {
               try {
+                // Try parsing as JSON first (if the user ran it with -json)
                 const data = JSON.parse(line);
                 newSubdomains.push({
                   host: data.host || data.name,
@@ -191,7 +212,17 @@ export function Summary() {
                   source: data.source || file.toolName,
                   input: data.input || data.domain,
                 });
-              } catch (e) {}
+              } catch (e) {
+                // Fallback to plain text (default subfinder output)
+                const trimmed = line.trim();
+                if (trimmed && !trimmed.startsWith("[")) {
+                  newSubdomains.push({
+                    host: trimmed,
+                    source: file.toolName,
+                    input: "Unknown",
+                  });
+                }
+              }
             });
           }
 
@@ -213,6 +244,79 @@ export function Summary() {
               }
             } catch (e) {}
           }
+
+          if (file.toolName === "Nmap") {
+            try {
+              const content = await readTextFile(file.filePath);
+              let currentHost = "Unknown";
+              const lines = content.split("\n");
+              
+              const hostRegex = /^Nmap scan report for ([\w.-]+)/;
+              const portRegex = /^(\d+)\/(tcp|udp)\s+(\w+)\s+([\w.-]+)(?:\s+(.*))?$/;
+
+              for (const line of lines) {
+                const hostMatch = line.match(hostRegex);
+                if (hostMatch) {
+                  currentHost = hostMatch[1];
+                  continue;
+                }
+                
+                const portMatch = line.match(portRegex);
+                if (portMatch) {
+                  const portInfo = {
+                    port: parseInt(portMatch[1], 10),
+                    protocol: portMatch[2],
+                    state: portMatch[3],
+                    service: portMatch[4],
+                    version: portMatch[5]?.trim(),
+                    host: currentHost
+                  };
+                  newActivePorts.push(portInfo);
+
+                  // Extract version keywords as Tech Stacks
+                  if (portInfo.version && portInfo.state === "open") {
+                    const plugins: Record<string, any> = {};
+                    plugins[portInfo.service] = {};
+                    
+                    // Extract meaningful words like 'Apache' or 'Ubuntu'
+                    const versionWords = portInfo.version.split(/[\s()]+/).filter(w => w.length > 2 && /[a-zA-Z]/.test(w));
+                    versionWords.forEach(w => plugins[w] = {});
+
+                    newTechStacks.push({
+                      target: `${portInfo.host}:${portInfo.port}`,
+                      http_status: portInfo.port, // Use port in the badge
+                      plugins,
+                      title: `Nmap Service Scan`
+                    });
+                  }
+                }
+              }
+            } catch (err) {
+              console.error("Failed to parse Nmap file:", file.fileName, err);
+            }
+          }
+
+          if (file.toolName === "Nuclei") {
+            try {
+              const content = await readTextFile(file.filePath);
+              const lines = content.split("\n").filter(Boolean);
+              lines.forEach(line => {
+                try {
+                  const data = JSON.parse(line);
+                  newVulnerabilities.push({
+                    template: data["template-id"] || "unknown",
+                    name: data.info?.name || "Unknown Vulnerability",
+                    severity: data.info?.severity || "info",
+                    host: data.host || data.matched || data["matched-at"],
+                    description: data.info?.description,
+                    extractedResults: data["extracted-results"]
+                  });
+                } catch (e) {}
+              });
+            } catch (err) {
+              console.error("Failed to parse Nuclei file:", file.fileName, err);
+            }
+          }
         } catch (err) {
           console.error("Failed to parse file:", file.fileName, err);
         }
@@ -226,6 +330,8 @@ export function Summary() {
       setSubdomains(uniqueSubs);
       setTechStacks(newTechStacks);
       setEmails(Array.from(newEmails));
+      setActivePorts(newActivePorts);
+      setVulnerabilities(newVulnerabilities);
     };
 
     parseFiles();
@@ -254,6 +360,20 @@ export function Summary() {
       successRate: total > 0 ? Math.round((success / total) * 100) : 0,
     };
   }, [entries]);
+
+  const parsedStats = useMemo(() => {
+    const techCounts = techStacks.reduce((acc, tech) => {
+      Object.keys(tech.plugins).forEach(plugin => {
+        acc[plugin] = (acc[plugin] || 0) + 1;
+      });
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const topTech = Object.entries(techCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const maxTech = topTech.length > 0 ? topTech[0][1] : 1;
+
+    return { topTech, maxTech };
+  }, [techStacks]);
 
   if (loading) {
     return (
@@ -312,18 +432,24 @@ export function Summary() {
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Distribution</CardTitle>
+                <CardTitle>Top Technologies</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {stats.topCategories.map(([cat, count], idx) => (
-                  <ProgressBar
-                    key={cat}
-                    label={cat}
-                    value={count}
-                    max={stats.total}
-                    color={idx === 0 ? "bg-primary" : "bg-primary/60"}
-                  />
-                ))}
+                {parsedStats.topTech.length === 0 ? (
+                  <div className="text-sm text-muted-foreground text-center py-4">
+                    No technologies identified yet.
+                  </div>
+                ) : (
+                  parsedStats.topTech.map(([tech, count], idx) => (
+                    <ProgressBar
+                      key={tech}
+                      label={tech}
+                      value={count}
+                      max={parsedStats.maxTech}
+                      color={idx === 0 ? "bg-primary" : "bg-primary/80"}
+                    />
+                  ))
+                )}
               </CardContent>
             </Card>
             <Card>
@@ -512,29 +638,126 @@ export function Summary() {
             </div>
           </AccordionSection>
 
-          {/* Active Recon Section (Placeholder) */}
+          {/* Active Recon Section */}
           <AccordionSection
             title="Active Reconnaissance"
             icon={FaServer}
-            count={0}
+            count={activePorts.length}
           >
-            <div className="p-8 text-center text-muted-foreground">
-              <FaServer className="h-12 w-12 mx-auto mb-4 opacity-20" />
-              <p>
-                Active port scan data not available. Integrate Nmap scans to
-                view detailed port and service information here.
-              </p>
+            <div className="bg-card p-6 space-y-8">
+              <h3 className="font-semibold flex items-center gap-2">
+                <FaServer /> Active Ports & Services ({activePorts.length})
+              </h3>
+              {activePorts.length === 0 ? (
+                <div className="text-center py-10 border rounded-lg bg-muted/10 border-dashed">
+                  <FaServer className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-muted-foreground">
+                    Active port scan data not available. Integrate Nmap scans to view detailed port and service information here.
+                  </p>
+                </div>
+              ) : (
+                <div className="border rounded-md overflow-hidden">
+                  <div className="max-h-[500px] overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted text-muted-foreground sticky top-0 z-10">
+                        <tr>
+                          <th className="px-4 py-3 text-left font-medium">Host</th>
+                          <th className="px-4 py-3 text-left font-medium">Port / Protocol</th>
+                          <th className="px-4 py-3 text-left font-medium">State</th>
+                          <th className="px-4 py-3 text-left font-medium">Service</th>
+                          <th className="px-4 py-3 text-left font-medium">Version</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {activePorts.map((portInfo, i) => (
+                          <tr key={i} className="hover:bg-muted/50 transition-colors">
+                            <td className="px-4 py-2 font-mono text-primary">{portInfo.host}</td>
+                            <td className="px-4 py-2 font-mono">
+                              {portInfo.port}/{portInfo.protocol}
+                            </td>
+                            <td className="px-4 py-2">
+                              <span
+                                className={cn(
+                                  "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
+                                  portInfo.state === "open"
+                                    ? "bg-green-500/10 text-green-500"
+                                    : "bg-secondary text-secondary-foreground"
+                                )}
+                              >
+                                {portInfo.state}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2 text-muted-foreground">{portInfo.service}</td>
+                            <td className="px-4 py-2 text-muted-foreground">{portInfo.version || "-"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           </AccordionSection>
 
-          {/* Vuln Section (Placeholder) */}
-          <AccordionSection title="Vulnerabilities" icon={FaBug} count={0}>
-            <div className="p-8 text-center text-muted-foreground">
-              <FaBug className="h-12 w-12 mx-auto mb-4 opacity-20" />
-              <p>
-                No vulnerability data found. Run targeted vulnerability scans to
-                populate this report.
-              </p>
+          {/* Vuln Section */}
+          <AccordionSection title="Vulnerabilities" icon={FaBug} count={vulnerabilities.length}>
+            <div className="bg-card p-6 space-y-8">
+              <h3 className="font-semibold flex items-center gap-2">
+                <FaBug /> Discovered Vulnerabilities ({vulnerabilities.length})
+              </h3>
+              {vulnerabilities.length === 0 ? (
+                <div className="text-center py-10 border rounded-lg bg-muted/10 border-dashed">
+                  <FaBug className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-muted-foreground">
+                    No vulnerability data found. Run targeted vulnerability scans to populate this report.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {vulnerabilities.map((vuln, i) => {
+                    const severityColors: Record<string, string> = {
+                      critical: "bg-red-500/20 text-red-500 border-red-500/30",
+                      high: "bg-orange-500/20 text-orange-500 border-orange-500/30",
+                      medium: "bg-yellow-500/20 text-yellow-500 border-yellow-500/30",
+                      low: "bg-green-500/20 text-green-500 border-green-500/30",
+                      info: "bg-blue-500/20 text-blue-500 border-blue-500/30",
+                    };
+                    const colorClass = severityColors[vuln.severity.toLowerCase()] || "bg-secondary text-secondary-foreground";
+
+                    return (
+                      <Card key={i} className="flex flex-col">
+                        <CardHeader className="pb-3">
+                          <div className="flex justify-between items-start gap-2">
+                            <CardTitle className="text-base leading-tight">
+                              {vuln.name}
+                            </CardTitle>
+                            <span className={cn("text-xs px-2 py-0.5 rounded border font-medium capitalize", colorClass)}>
+                              {vuln.severity}
+                            </span>
+                          </div>
+                          <CardDescription className="font-mono text-xs text-primary truncate" title={vuln.host}>
+                            {vuln.host}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-0 flex-1 flex flex-col justify-between">
+                          {vuln.description ? (
+                            <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
+                              {vuln.description}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-muted-foreground italic mb-4">No description provided</p>
+                          )}
+                          <div className="mt-auto">
+                            <span className="text-[10px] px-2 py-1 bg-muted rounded-md text-muted-foreground border">
+                              {vuln.template}
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </AccordionSection>
         </div>
