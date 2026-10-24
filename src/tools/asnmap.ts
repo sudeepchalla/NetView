@@ -15,11 +15,11 @@ export async function runAsnmap(
   callbacks: ToolCallbacks
 ): Promise<{ outputPath: string }> {
   const { target, type = "domain", engagementName = "Default" } = options;
-
+  const safeTarget = target.replace(/[^a-zA-Z0-9._-]/g, "_");
   //setup output paths
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const winPath = `${docDir}\\NetView\\results\\${engagement}\\asnmap_${target}_${Date.now()}.txt`;
+  const winPath = `${docDir}\\NetView\\results\\${engagement}\\asnmap_${safeTarget}_${Date.now()}.txt`;
   const toolPath = convertToToolPath(winPath);
   const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 
@@ -31,8 +31,10 @@ export async function runAsnmap(
     case "org": typeFlag = "-org"; break;
   }
   
-  const asnmapCmd = `~/go/bin/asnmap ${typeFlag} ${target} -o "${toolPath}"`;
-  const fullCmd = `mkdir -p "${outputDir}" && ${asnmapCmd}`;
+const asnmapCmd =
+  `~/go/bin/asnmap -silent -duc  ${typeFlag} "${target}"`;
+const fullCmd =
+  `mkdir -p "${outputDir}" && timeout 120 ${asnmapCmd} > "${toolPath}" 2>&1`;
 
   callbacks.onOutput?.(`Executing: ${asnmapCmd}`);
 
@@ -73,10 +75,10 @@ export async function installAsnmap(
 
   callbacks.onOutput?.("\nInstalling Asnmap...");
   
-  const script = `go install -v github.com/projectdiscovery/asnmap/cmd/asnmap@latest 2>&1 && echo 'ASNMAP_INSTALL_SUCCESS'`;
+  const script = `go install -v github.com/projectdiscovery/asnmap/cmd/asnmap@v1.0.4 2>&1 && echo 'ASNMAP_INSTALL_SUCCESS'`;
   const result = await runCommand(script, { onOutput: callbacks.onOutput });
 
-  const success = result.output.some((line) => line.includes("ASNMAP_INSTALL_SUCCESS"));
+  const success = result.code === 0 &&result.output.some((line) => line.includes("ASNMAP_INSTALL_SUCCESS"));
 
   if (success) {
     callbacks.onOutput?.("\nAsnmap installed successfully!");

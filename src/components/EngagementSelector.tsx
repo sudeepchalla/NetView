@@ -71,7 +71,32 @@ export function EngagementSelectorItems() {
       date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     );
   };
+  const groupedFiles = currentFiles.reduce(
+    (acc, file) => {
+      const division =
+        file.divisionName || "other";
 
+      const tool =
+        file.toolName || "Unknown";
+
+      if (!acc[division]) {
+        acc[division] = {};
+      }
+
+      if (!acc[division][tool]) {
+        acc[division][tool] = [];
+      }
+
+      acc[division][tool].push(file);
+
+      return acc;
+    },
+
+    {} as Record<
+      string,
+      Record<string, typeof currentFiles>
+    >
+  );
   return (
     <>
       {/* Engagement Selector */}
@@ -124,11 +149,10 @@ export function EngagementSelectorItems() {
               engagements.map((eng) => (
                 <div
                   key={eng.id}
-                  className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
-                    currentEngagement?.id === eng.id
-                      ? "bg-primary/10 border-primary"
-                      : "hover:bg-muted/50"
-                  }`}
+                  className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${currentEngagement?.id === eng.id
+                    ? "bg-primary/10 border-primary"
+                    : "hover:bg-muted/50"
+                    }`}
                   onClick={() => handleSelect(eng.id!)}
                 >
                   <div>
@@ -196,37 +220,84 @@ export function EngagementSelectorItems() {
                 No files generated yet. Run a scan to see files here.
               </div>
             ) : (
-              currentFiles.map((file) => (
-                <div
-                  key={file.id}
-                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">
-                      {file.fileName}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {file.filePath}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                        {file.toolName}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {formatTime(file.createdAt)}
-                      </span>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 ml-2"
-                    onClick={() => handleOpenFile(file.filePath)}
+              Object.entries(groupedFiles).map(
+                ([divisionName, tools]) => (
+                  <div
+                    key={divisionName}
+                    className="space-y-3"
                   >
-                    <FaFolderOpen className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))
+                    <div className="sticky top-0 bg-background z-10 py-1">
+                      <h3 className="text-sm font-semibold uppercase tracking-wide text-primary">
+                        {divisionName.replace(/-/g, " ")}
+                      </h3>
+                    </div>
+
+                    {Object.entries(tools).map(
+                      ([toolName, files]) => (
+                        <div
+                          key={toolName}
+                          className="space-y-2"
+                        >
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-medium">
+                              {toolName}
+                            </h4>
+
+                            <span className="text-xs text-muted-foreground">
+                              {files.length} file
+                              {files.length !== 1
+                                ? "s"
+                                : ""}
+                            </span>
+                          </div>
+
+                          {files.map((file) => (
+                            <div
+                              key={file.id}
+                              className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm truncate">
+                                  {file.fileName}
+                                </p>
+
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {file.filePath}
+                                </p>
+
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                                    {file.toolName}
+                                  </span>
+
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {formatTime(
+                                      file.createdAt
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 ml-2"
+                                onClick={() =>
+                                  handleOpenFile(
+                                    file.filePath
+                                  )
+                                }
+                              >
+                                <FaFolderOpen className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    )}
+                  </div>
+                )
+              )
             )}
           </div>
         </DialogContent>

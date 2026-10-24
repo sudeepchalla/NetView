@@ -5,7 +5,6 @@ import {
   checkSubfinderInstalled,
   checkAmassInstalled,
   checkAsnmapInstalled,
-  checkShodanInstalled,
   checkWhoisInstalled,
   checkWhatWebInstalled,
   checkCrtshInstalled,
@@ -32,7 +31,6 @@ const toolCheckFunctions: Record<string, () => Promise<boolean>> = {
   "Subfinder": checkSubfinderInstalled,
   "Amass": checkAmassInstalled,
   "Asnmap": checkAsnmapInstalled,
-  "Shodan": checkShodanInstalled,
   "Whois": checkWhoisInstalled,
   "WhatWeb": checkWhatWebInstalled,
   "CRT.sh": checkCrtshInstalled,
@@ -76,13 +74,21 @@ export const useToolsStore = create<ToolsState>((set, get) => ({
   },
 
   checkAllTools: async () => {
-    const toolNames = Object.keys(toolCheckFunctions);
+    const toolNames: string[] = [...Object.keys(toolCheckFunctions),"Shodan"];
     for (const toolName of toolNames) {
       get().checkToolInstallation(toolName);
     }
   },
 
   checkToolInstallation: async (toolName: string) => {
+    if (toolName === "Shodan") {
+
+  if (!(toolName in get().installedTools)) {
+    await get().markInstalled(toolName);
+  }
+
+  return true;
+}
     try {
       const checkFn = toolCheckFunctions[toolName];
       if (!checkFn) {

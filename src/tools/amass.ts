@@ -7,6 +7,8 @@ export interface AmassOptions {
   passive?: boolean;
   apiKey?: string;
   engagementName?: string;
+  presetName?: string; // For labeling results when using presets
+  originalTarget?: string; // For labeling results when using presets
 }
 
 //run amass enumeration against target
@@ -14,12 +16,17 @@ export async function runAmass(
   options: AmassOptions,
   callbacks: ToolCallbacks
 ): Promise<{ outputPath: string }> {
-  const { target, passive = true, engagementName = "Default" } = options;
+  const { target, passive = true, engagementName = "Default", presetName, originalTarget } = options;
 
   //setup output paths
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const winPath = `${docDir}\\NetView\\results\\${engagement}\\amass_${target}_${Date.now()}.json`;
+  const targetLabel =
+    presetName && originalTarget
+      ? `${presetName}_${originalTarget}`
+      : target;
+  const safeTargetLabel = targetLabel.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const winPath = `${docDir}\\NetView\\results\\${engagement}\\passive-recon\\amass\\amass_${safeTargetLabel}_${Date.now()}.json`;
   const toolPath = convertToToolPath(winPath);
   const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 

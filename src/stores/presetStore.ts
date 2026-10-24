@@ -63,6 +63,8 @@ export const AVAILABLE_TOOLS = [
   { name: "Nmap", category: "Active Recon", inputType: "hosts", outputType: "ports" },
   { name: "Httpx", category: "Active Recon", inputType: "hosts", outputType: "live_hosts" },
   { name: "Nuclei", category: "Vuln Scanning", inputType: "hosts", outputType: "vulns" },
+  { name: "Masscan", category: "Active Recon", inputType: "hosts", outputType: "ports" },
+  { name: "RustScan", category: "Active Recon", inputType: "hosts", outputType: "ports" },
 ];
 
 // Default presets to seed if database is empty

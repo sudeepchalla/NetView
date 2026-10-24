@@ -50,5 +50,7 @@ export interface EngagementFile {
   filePath: string;
   toolName: string;
   createdAt: string;
+  divisionName?: string;
+  displayName?: string;
 }
 

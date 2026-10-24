@@ -7,6 +7,8 @@ export interface WhatWebOptions {
   aggression?: 1 | 2 | 3 | 4;
   verbose?: boolean;
   engagementName?: string;
+  presetName?: string;
+  originalTarget?: string;
 }
 
 //run whatweb against target url
@@ -14,17 +16,24 @@ export async function runWhatWeb(
   options: WhatWebOptions,
   callbacks: ToolCallbacks
 ): Promise<{ outputPath: string }> {
-  const { target, aggression = 1, verbose = false, engagementName = "Default" } = options;
+  const { target, aggression = 1, verbose = false, engagementName = "Default",presetName,originalTarget } = options;
 
   //setup output paths
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const winPath = `${docDir}\\NetView\\results\\${engagement}\\whatweb_${target.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.json`;
+  const targetLabel =
+  presetName && originalTarget
+    ? `${presetName}_${originalTarget}`
+    : target;
+const safeTargetLabel =
+  targetLabel.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const winPath = `${docDir}\\NetView\\results\\${engagement}\\passive-recon\\whatweb\\whatweb_${safeTargetLabel}_${Date.now()}.json`;
   const toolPath = convertToToolPath(winPath);
   const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 
   //build command
-  let whatwebCmd = `whatweb -a ${aggression} --log-json="${toolPath}"`;
+  let whatwebCmd =
+  `~/WhatWeb/whatweb -a ${aggression} --log-json="${toolPath}"`;
   if (verbose) whatwebCmd += " -v";
   whatwebCmd += ` "${target}"`;
 
@@ -53,9 +62,20 @@ export async function installWhatWeb(
 ): Promise<boolean> {
   const escapedPassword = password.replace(/'/g, "'\\''");
   callbacks.onOutput?.("Installing WhatWeb...");
-  
-  const script = `echo '${escapedPassword}' | sudo -S apt-get update && echo '${escapedPassword}' | sudo -S apt-get install -y whatweb && echo 'WHATWEB_INSTALL_SUCCESS'`;
-  
+
+  const script = `
+echo '${escapedPassword}' | sudo -S apt-get update &&
+echo '${escapedPassword}' | sudo -S apt-get install -y ruby-full git build-essential &&
+
+if [ ! -d ~/WhatWeb ]; then
+  git clone https://github.com/urbanadventurer/WhatWeb.git ~/WhatWeb
+fi &&
+
+chmod +x ~/WhatWeb/whatweb &&
+
+echo 'WHATWEB_INSTALL_SUCCESS'
+`;
+
   const result = await runCommand(script, {
     onOutput: (line) => {
       if (!line.includes(password)) callbacks.onOutput?.(line);
@@ -77,6 +97,8 @@ export async function installWhatWeb(
 
 //check if whatweb is installed
 export async function checkWhatWebInstalled(): Promise<boolean> {
-  const result = await runCommand("which whatweb > /dev/null 2>&1 && echo 'FOUND' || echo 'NOT_FOUND'");
+  const result = await runCommand(
+  '[ -f ~/WhatWeb/whatweb ] && echo "FOUND" || echo "NOT_FOUND"'
+);
   return result.output.some((line) => line.includes("FOUND") && !line.includes("NOT_FOUND"));
 }

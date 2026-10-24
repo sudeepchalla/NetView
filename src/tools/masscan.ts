@@ -1,23 +1,65 @@
 import { documentDir } from "@tauri-apps/api/path";
 import { spawnCommand, convertToToolPath, runCommand } from "./execution";
 import type { BaseToolOptions, ToolCallbacks } from "./types";
+import {
+  exists,
+} from "@tauri-apps/plugin-fs";
 
 export interface MasscanOptions extends BaseToolOptions {
   ports?: string; // -p
   rate?: number; // --rate
+  presetName?: string; // For labeling results when using presets
+  originalTarget?: string; // For labeling results when using presets
 }
 
 export async function runMasscan(
   options: MasscanOptions,
   callbacks: ToolCallbacks
 ): Promise<{ outputPath: string }> {
-  const { target, engagementName = "Default", ports = "80,443", rate = 1000 } = options;
-
+  const { target, engagementName = "Default", ports = "80,443", rate = 1000, presetName, originalTarget } = options;
   if (!target) throw new Error("Target is required");
+  const targetValue = target;
+  let scanTarget = target;
+  // Check if target is already an IPv4 address
+  const isIp =
+    /^(\d{1,3}\.){3}\d{1,3}$/.test(targetValue);
 
+  if (!isIp) {
+    callbacks.onOutput?.(
+      `Resolving ${target} to IP address...`
+    );
+
+    const dnsResult = await runCommand(
+      `getent ahostsv4 "${targetValue}" | head -n 1 | awk '{print $1}'`
+    );
+
+    if (
+      dnsResult.code === 0 &&
+      dnsResult.output.length > 0
+    ) {
+      scanTarget =
+        dnsResult.output[0].trim();
+
+      callbacks.onOutput?.(
+        `Resolved ${target} -> ${scanTarget}`
+      );
+    } else {
+      throw new Error(
+        `Failed to resolve domain: ${target}`
+      );
+    }
+  }
+
+  const safeTarget = target.replace(/[^a-zA-Z0-9._-]/g, "_");
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const winPath = `${docDir}\\NetView\\results\\${engagement}\\masscan_${target}_${Date.now()}.json`;
+  const targetLabel =
+    presetName && originalTarget
+      ? `${presetName}_${originalTarget}`
+      : safeTarget;
+  const safeTargetLabel =
+    targetLabel.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const winPath = `${docDir}\\NetView\\results\\${engagement}\\active-recon\\masscan\\masscan_${safeTargetLabel}_${Date.now()}.json`;
   const toolPath = convertToToolPath(winPath);
   const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 
@@ -27,24 +69,116 @@ export async function runMasscan(
   // For now, we'll try to execute. The user might have passwordless sudo or be running as root.
   // Ideally, UI should prompt for sudo password if not cached. 
   // We'll exclude 'sudo' for now and assume capabilities are set or user handles it.
-  
-  let cmd = `masscan "${target}" -p${ports} --rate=${rate} -oJ "${toolPath}"`;
-  
+
+  let cmd =
+    `masscan "${scanTarget}" -p${ports} --rate=${rate}  -oJ "${toolPath}"`;
+
+  // Check if masscan has required capabilities
+  callbacks.onOutput?.(`Checking Masscan capabilities...`);
+  const capCheck = await runCommand("getcap $(which masscan)");
+
+  const hasCaps = capCheck.output.some(
+    (line) =>
+      line.includes("cap_net_raw") &&
+      line.includes("cap_net_admin")
+  );
+
+  if (!hasCaps) {
+    callbacks.onOutput?.(
+      "Masscan requires elevated privileges."
+    );
+
+    callbacks.onOutput?.(
+      "Run this once in WSL:"
+    );
+
+    callbacks.onOutput?.(
+      `sudo setcap cap_net_raw,cap_net_admin=eip /usr/bin/masscan
+    After running the above command in WSL:-
+    1.Restart Netview
+    2.Run this scan again`
+
+    );
+
+    throw new Error(
+      "Masscan missing required capabilities"
+    );
+  }
+
   // NOTE: Typically needs sudo. 
   // cmd = `echo '${options.password}' | sudo -S ` + cmd; // IF we had password in options.
 
-  const fullCmd = `mkdir -p "${outputDir}" && ${cmd}`;
-  
-  callbacks.onOutput?.(`Executing: ${cmd}`);
-  callbacks.onOutput?.("NOTE: Masscan usually requires root privileges (sudo).");
+  const fullCmd =
+    `mkdir -p "${outputDir}" && ${cmd}`;
 
-  await spawnCommand(["bash", "-c", fullCmd], {
-    onOutput: callbacks.onOutput,
-    onComplete: callbacks.onComplete,
-    onError: callbacks.onError,
-  });
+  callbacks.onOutput?.(
+    `Executing: ${cmd}`
+  );
 
-  return { outputPath: winPath };
+  try {
+    await spawnCommand(
+      ["bash", "-c", fullCmd],
+      {
+        onOutput: callbacks.onOutput,
+
+        onComplete: (success, code) => {
+          if (success) {
+            callbacks.onOutput?.(
+              `\n[Process completed with exit code ${code}]`
+            );
+
+            callbacks.onOutput?.(
+              `Results saved to:\n${winPath}`
+            );
+          }
+
+          callbacks.onComplete?.(
+            success,
+            code
+          );
+        },
+
+        onError: callbacks.onError,
+      }
+    );
+    const fileExists = await exists(winPath);
+
+    callbacks.onOutput?.(
+      `Masscan output exists: ${fileExists}`
+    );
+
+    if (!fileExists) {
+      throw new Error(
+        `Masscan completed but output file was not created: ${winPath}`
+      );
+    }
+
+    callbacks.onOutput?.(
+      "\n[+] Scan completed successfully"
+    );
+
+    return {
+      outputPath: winPath,
+    };
+  } catch (error) {
+    callbacks.onOutput?.(
+      `\n[Error: ${error}]`
+    );
+
+    callbacks.onError?.(
+      String(error)
+    );
+
+    callbacks.onComplete?.(
+      false,
+      -1
+    );
+
+    return {
+      outputPath: "",
+    };
+  }
+
 }
 
 export async function installMasscan(
@@ -53,10 +187,15 @@ export async function installMasscan(
 ): Promise<boolean> {
   const escapedPassword = password.replace(/'/g, "'\\''");
   callbacks.onOutput?.("Installing Masscan...");
-  
+
   // Masscan from apt is often old, but easiest. Source build is better but longer.
-  const script = `echo '${escapedPassword}' | sudo -S apt-get update && echo '${escapedPassword}' | sudo -S apt-get install -y masscan && echo 'INSTALL_SUCCESS'`;
-  
+  const script = `
+echo '${escapedPassword}' | sudo -S apt-get update &&
+echo '${escapedPassword}' | sudo -S apt-get install -y masscan &&
+echo '${escapedPassword}' | sudo -S setcap cap_net_raw,cap_net_admin=eip /usr/bin/masscan &&
+echo 'INSTALL_SUCCESS'
+`;
+
   const result = await runCommand(script, {
     onOutput: (line) => {
       if (!line.includes(password)) callbacks.onOutput?.(line);
@@ -64,15 +203,44 @@ export async function installMasscan(
   });
 
   if (result.output.some(line => line.includes("INSTALL_SUCCESS"))) {
-    callbacks.onOutput?.("\nMasscan installed successfully!");
+
+    const verifyCaps = await runCommand(
+      "getcap $(which masscan)"
+    );
+
+    const capsOk = verifyCaps.output.some(
+      (line) =>
+        line.includes("cap_net_raw") &&
+        line.includes("cap_net_admin")
+    );
+
+    if (!capsOk) {
+      callbacks.onOutput?.(
+        "Masscan installed but capabilities could not be set."
+      );
+
+      callbacks.onComplete?.(false, 1);
+      return false;
+    }
+
+    callbacks.onOutput?.(
+      "\nMasscan installed successfully!"
+    );
+
     callbacks.onComplete?.(true, 0);
     return true;
+
   } else {
-    callbacks.onOutput?.("\nMasscan installation failed.");
+    callbacks.onOutput?.(
+      "\nMasscan installation failed."
+    );
+
     callbacks.onComplete?.(false, result.code);
     return false;
   }
+
 }
+
 
 export async function checkMasscanInstalled(): Promise<boolean> {
   const result = await runCommand("which masscan || echo 'NOT_FOUND'");

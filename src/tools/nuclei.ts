@@ -1,28 +1,37 @@
 import { documentDir } from "@tauri-apps/api/path";
 import { spawnCommand, convertToToolPath, runCommand } from "./execution";
 import type { BaseToolOptions, ToolCallbacks } from "./types";
+import { ensureGoInstalledAndUpdated,checkGoInstalled } from "./prerequisites";
 
 export interface NucleiOptions extends BaseToolOptions {
   templates?: string[]; // -t (list of templates or tags)
   severity?: string[];  // -severity
   noInteractsh?: boolean; // -no-interactsh (privacy)
+  presetName?: string; // For labeling results when using presets
+  originalTarget?: string; // For labeling results when using presets
 }
 
 export async function runNuclei(
   options: NucleiOptions,
   callbacks: ToolCallbacks
 ): Promise<{ outputPath: string }> {
-  const { target, engagementName = "Default", templates, severity, noInteractsh } = options;
+  const { target, engagementName = "Default", templates, severity, noInteractsh,presetName,originalTarget } = options;
 
   if (!target) throw new Error("Target is required");
 
   const docDir = await documentDir();
   const engagement = engagementName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const winPath = `${docDir}\\NetView\\results\\${engagement}\\nuclei_${target.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.json`;
+  const targetLabel =
+  presetName && originalTarget
+    ? `${presetName}_${originalTarget}`
+    : target;
+const safeTargetLabel =
+  targetLabel.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const winPath = `${docDir}\\NetView\\results\\${engagement}\\vulnerability-scanning\\nuclei\\nuclei_${safeTargetLabel}_${Date.now()}.json`;
   const toolPath = convertToToolPath(winPath);
   const outputDir = toolPath.substring(0, toolPath.lastIndexOf('/'));
 
-  let cmd = `~/go/bin/nuclei -u "${target}" -json -o "${toolPath}"`;
+  let cmd = `~/go/bin/nuclei -u "${target}" -silent -jsonl -o "${toolPath}"`;
 
   if (templates && templates.length > 0) {
     templates.forEach(t => cmd += ` -t "${t}"`);
@@ -39,33 +48,88 @@ export async function runNuclei(
   // Auto-update templates is common, but maybe skip for speed?
   // cmd += " -update-templates"; 
 
-  const fullCmd = `mkdir -p "${outputDir}" && ${cmd}`;
-  
-  callbacks.onOutput?.(`Executing: ${cmd}`);
+const fullCmd =
+  `mkdir -p "${outputDir}" && ${cmd}`;
 
-  await spawnCommand(["bash", "-c", fullCmd], {
-    onOutput: callbacks.onOutput,
-    onComplete: callbacks.onComplete,
-    onError: callbacks.onError,
-  });
+callbacks.onOutput?.(
+  `Executing: ${cmd}`
+);
 
-  return { outputPath: winPath };
+try {
+  await spawnCommand(
+    ["bash", "-c", fullCmd],
+    {
+      onOutput: callbacks.onOutput,
+
+      onComplete: (success, code) => {
+        if (success) {
+          callbacks.onOutput?.(
+            `\n[Process completed with exit code ${code}]`
+          );
+
+          callbacks.onOutput?.(
+            `Results saved to:\n${winPath}`
+          );
+        }
+
+        callbacks.onComplete?.(
+          success,
+          code
+        );
+      },
+
+      onError: callbacks.onError,
+    }
+  );
+
+  callbacks.onOutput?.(
+    "\n[+] Scan completed successfully"
+  );
+
+  return {
+    outputPath: winPath,
+  };
+} catch (error) {
+  callbacks.onOutput?.(
+    `\n[Error: ${error}]`
+  );
+
+  callbacks.onError?.(
+    String(error)
+  );
+
+  callbacks.onComplete?.(
+    false,
+    -1
+  );
+
+  return {
+    outputPath: "",
+  };
+}
 }
 
 export async function installNuclei(
   password: string,
   callbacks: ToolCallbacks
 ): Promise<boolean> {
-  const escapedPassword = password.replace(/'/g, "'\\''");
+  callbacks.onOutput?.("Preparing Go environment...");
+
+  callbacks.onOutput?.(
+  `Go Installed: ${await checkGoInstalled()}`
+);
+const goReady = await ensureGoInstalledAndUpdated(
+  password,
+  callbacks
+);
+
+if (!goReady) {
+  callbacks.onError?.("Failed to prepare Go environment.");
+  return false;
+}
   callbacks.onOutput?.("Installing Nuclei...");
 
-  // Ensure Go
-  const goCheck = await runCommand("which go || echo 'GO_NOT_FOUND'");
-  if (goCheck.output.some(line => line.includes("GO_NOT_FOUND"))) {
-     callbacks.onOutput?.("Go not found. Installing Go...");
-     const goScript = `echo '${escapedPassword}' | sudo -S apt-get update && echo '${escapedPassword}' | sudo -S apt-get install -y golang-go`;
-     await runCommand(goScript, { onOutput: l => !l.includes(password) && callbacks.onOutput?.(l) });
-  }
+
 
   callbacks.onOutput?.("Installing Nuclei via Go...");
   const script = `go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest 2>&1 && echo 'INSTALL_SUCCESS'`;
